@@ -11,7 +11,7 @@
     "algorithms/test_algorithms.py": "2a9b10a343a10fdd1f9260ff74173ceb1809e44ca6f2b9d966dd332c9cb9fc06",
     "docs/algorithm_dependencies.md": "9a78efdc452096503d7cf8e04e26c269ac17ac6c28e3ededc30c44dff471d7d0",
     "docs/evaluation_request_template.md": "cf250109dc5e7e1e8b1f2619f603f1e2baaf2693c71e608a526a7a9d4083d67c",
-    "docs/loadout_selection.md": "869cce7140cf4972bad64b558eeca81826cd890ede4c97cddfe0c40daba1bd61",
+    "docs/loadout_selection.md": "2aa5acf42ab3b954bd59d55ad5926ebe476327b490a66fa400de9a4627131dc2",
     "docs/pixel_distance.md": "ac221011f5b5981ad5ef0d71b7c82bcca5d09b90913062277bab1b9fdb2b94e3",
     "docs/short_horizon.md": "27b74426db2a1ba984ab2531b03a68178c3317c5bd67ec0a5bf10ae603accad0",
     "docs/workbench_guide.md": "9fd97bb9456ebd9d01824c5ea85566b650bcbf91e210fb6f9ef6e396d99aadd6",
@@ -826,7 +826,7 @@
     "requirements.txt": "5001f5d838c6727f42f9bc13face10a8e4e8ad9a3f9e5c953e6d7bfdf1abcda9",
     "scripts/verify_repository.py": "79cee0327b2ba24721bf49a853db9f2b034ca241d476283962f2c77c1e604f4b",
     "templates/mechanic_adapters.json": "1a1ffda81cf4541d864ce79ce419a1381200cf34138e8f8cbb96d74e37edc28f",
-    "tests/test_browser.py": "d9f64ab97f8d3d8ec40fb77debd6c5b207f7d6a95382fdf424a6260fa37a0367",
+    "tests/test_browser.py": "d1008a70a25664fc05b4e6947e120c7a29692af9fe0007ea5cfe1566fa12c8b6",
     "tests/test_loadouts.py": "cd790e0640215091d28d3ee5b347115333e8da12f0011d588b183b714f6690cd",
     "tests/test_probabilistic_mechanics.py": "71a70662c2f9f888a3102af9baca82992a062cc5ef1178a47988359a66ebccf8",
     "tests/test_short_horizon.py": "96692bdbdb2af2afa8ccaffe60fd3d933f512966b8abe2a2d74f2e1af4f5003e",
@@ -837,11 +837,11 @@
     "workbench/external_selectors.py": "350f66cf246e9c79847c6bba3aeeb7a7ab450eead1781f4c59bca2451e918a52",
     "workbench/game_tools.py": "32daab5999b9d6f0baa3c5c6266e0ccd7e86ecbf6635e043e1c94b6548bfe3d7",
     "workbench/i18n.js": "7e9f7982d6cecf0fbfdd5220a7cac7729c815e0ef23f53cc0101048419ebf233",
-    "workbench/loadouts.js": "88287fe104031bd57b21124048315028834498d8057ab400f246c77bc9dd6214",
+    "workbench/loadouts.js": "18bd495e738f971cf371cb27246af0935ea696acc7a080aa01e86d044b9b366b",
     "workbench/loadouts.py": "2a6234521c9169b542553b4f4a188ba8350eb1c23744d85742120db0414a7d2a",
     "workbench/mechanic_observations.py": "ca3d75da4927608c7f65ed431b1e7340ce9e24d2da5202fb8c7874c5f892131c",
     "workbench/operations.py": "7be04851a6d3103eb392cb1284cba4b33022823f888034c22127be0df3b91461",
-    "workbench/review.html": "16a066b3d1c78e629adcf1ce39f69886eceede277be0006d2bfb8c03f1cdd07b",
+    "workbench/review.html": "077fcbba2ca4280145c071a824d5258499a8fb1c011d3e4c5284251371de8e42",
     "workbench/server.py": "392a6555e595779c687e7e4e4e4107a9b7595be061ae7c32d12956685cafa799"
   }
 }

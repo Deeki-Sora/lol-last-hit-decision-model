@@ -2,6 +2,18 @@
 <title>LOL 短时补兵决策评估工作台</title>
 <style>
 body{font:15px system-ui;margin:20px;background:#141b25;color:#ebf0f6}button,input,select,textarea{font:inherit;padding:7px;margin:3px;background:#253246;color:inherit;border:1px solid #748096;border-radius:4px}button{cursor:pointer}button:hover{background:#3a506c}textarea{width:96%;min-height:100px}canvas{width:100%;height:auto;cursor:crosshair;background:#000}main{display:grid;grid-template-columns:minmax(450px,1fr) 350px;gap:18px}.panel{background:#1d2939;padding:14px;border-radius:8px}small{color:#bfcee0}#status{white-space:pre-wrap}label{display:block;margin:5px 0}input[type=range]{width:55%}a{color:#90ceff}.warning{color:#ffd486}#action input{width:92%}@media(max-width:950px){main{display:block}}
+.loadout-sides{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 24px}
+.loadout-side{display:grid;grid-template-rows:subgrid;grid-row:span 6;gap:10px;min-width:0}
+.loadout-side h3,.loadout-side h4{margin:8px 0}.loadout-side h3{padding:8px;border-bottom:2px solid #71849d}
+.loadout-side[data-side=blue] h3{border-color:#62c2ff}.loadout-side[data-side=red] h3{border-color:#ff6a7a}
+.loadout-side>label{display:flex;align-items:center;gap:8px}.loadout-side>label input{min-width:0;flex:1}
+.loadout-champion-reference{max-height:200px;overflow:auto;padding:8px;background:#192434;border-radius:5px}
+.rune-fields>label{display:flex;align-items:center;gap:8px;min-height:40px;margin:4px 0}.rune-fields select{max-width:75%}
+.loadout-icon{display:inline-block;flex:0 0 28px;width:28px;height:28px;object-fit:contain;vertical-align:middle}
+.loadout-state>label{min-height:40px;display:flex;align-items:center;gap:8px;margin:4px 0}
+.inventory-row{display:flex;align-items:center;gap:4px;min-height:43px}.inventory-row>span{flex:0 0 55px}
+.inventory-row input[list]{flex:1;min-width:0;width:auto!important}.inventory-row input[type=number]{flex:0 0 50px;width:50px}
+@media(max-width:850px){.loadout-sides{grid-template-columns:minmax(0,1fr)}.loadout-side{display:block;grid-row:auto}}
 </style>
 <h1>LOL 短时补兵决策评估工作台</h1>
 <label>Language / 语言 <select id="uiLanguage"><option value="zh">中文</option><option value="en">English</option></select></label>

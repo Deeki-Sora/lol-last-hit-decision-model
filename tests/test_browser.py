@@ -31,14 +31,27 @@ class BrowserWorkflow(unittest.TestCase):
                     except Error as error:self.skipTest(str(error).splitlines()[0])
                     page=browser.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
                     page.goto(server.session_url);page.wait_for_selector('#patchVersion')
+                    self.assertEqual(page.locator('html').get_attribute('lang'),'zh-CN')
                     page.locator('#patchVersion').fill('16.6.1');page.locator('#loadCatalog').click()
                     page.wait_for_selector('#blueChampion');page.locator('#blueChampion').fill('Alpha');page.locator('#redChampion').fill('Beta')
                     page.locator('#blue_primary_path').select_option('100')
                     page.locator('#blue_primary0').select_option('101')
                     page.locator('#blue_secondary_path').select_option('200')
                     page.locator('#blue_secondary0').select_option('203');page.locator('#blue_secondary1').select_option('205')
+                    for slot,rune in enumerate([101,103,105,107]):page.locator(f'#blue_primary{slot}').select_option(str(rune))
+                    page.locator('#red_primary_path').select_option('200')
+                    for slot,rune in enumerate([201,203,205,207]):page.locator(f'#red_primary{slot}').select_option(str(rune))
+                    page.locator('#red_secondary_path').select_option('100')
+                    page.locator('#red_secondary0').select_option('103');page.locator('#red_secondary1').select_option('105')
+                    for side in ['blue','red']:
+                        for slot,shard in enumerate([5005,5008,5001]):page.locator(f'#{side}_shards{slot}').select_option(str(shard))
                     page.locator('#saveFixed').click();page.wait_for_function("document.querySelector('#loadoutStatus').textContent.includes('锁定')")
                     page.locator('#blueLevel').select_option('1');page.locator('#blueRankQ').select_option('1')
+                    page.locator('#redLevel').select_option('1');page.locator('#redRankQ').select_option('1')
+                    for side in ['blue','red']:
+                        for key in ['W','E','R']:page.locator(f'#{side}Rank{key}').select_option('0')
+                    page.locator('#redInventoryKnown').check();page.locator('#redItem0').fill('3');page.locator('#redItem0').press('Tab')
+                    page.locator('#redQuantity0').fill('2')
                     page.locator('#blueInventoryKnown').check();page.locator('#blueItem0').fill('1');page.locator('#blueItem0').press('Tab')
                     with page.expect_response(lambda r:'/api/configuration-save?' in r.url,timeout=4000) as saved_response:
                         page.locator('#recordSnapshot').click()
@@ -50,8 +63,13 @@ class BrowserWorkflow(unittest.TestCase):
                     page.locator('#uiLanguage').select_option('en');page.wait_for_function("document.documentElement.lang==='en'")
                     self.assertIn('Champion',page.locator('#loadoutPanel h3').first.inner_text())
                     self.assertEqual(page.locator('#blueLevel').input_value(),'2')
+                    for suffix in ['Champion','Runes','Level','RankQ','Item0','Item5']:
+                        left=page.locator('#blue'+suffix).bounding_box();right=page.locator('#red'+suffix).bounding_box()
+                        self.assertAlmostEqual(left['y'],right['y'],delta=1,msg=suffix+' should align across teams')
                     page.reload();page.wait_for_selector('#blueChampion');page.locator('#loadState').click()
                     self.assertEqual(page.locator('#blueLevel').input_value(),'1')
+                    self.assertEqual(page.locator('#redLevel').input_value(),'1')
+                    self.assertEqual(page.locator('#redQuantity0').input_value(),'2')
                     self.assertIn('1',page.locator('#blueItem0').input_value())
                     self.assertTrue(page.locator('#blueChampion').is_disabled())
                     # Exercise an actual second-origin selector popup, not a forged local API call.
@@ -85,6 +103,9 @@ class BrowserWorkflow(unittest.TestCase):
                     saved=read_json(project/'project.json')['configuration']
                     self.assertEqual([s['sides']['blue']['items'][0]['id'] for s in saved['snapshots']],['1','2'])
                     self.assertEqual(saved['match_setup']['sides']['blue']['rune_page']['primary'][0],102)
+                    self.assertEqual(saved['match_setup']['sides']['red']['rune_page']['primary'],[201,203,205,207])
+                    self.assertEqual(saved['snapshots'][0]['sides']['red']['items'][0]['quantity'],2)
+                    self.assertEqual(saved['snapshots'][0]['sides']['red']['spell_ranks'],dict(Q=1,W=0,E=0,R=0))
                     with zipfile.ZipFile(project/'assessment_bundle.zip') as archive:
                         self.assertIn('assessment/hero_states.json',archive.namelist())
                         self.assertIn('catalogs/16.6.1/catalog.json',archive.namelist())

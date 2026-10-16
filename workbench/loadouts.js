@@ -10,14 +10,14 @@
  function select(id,choices,value){let node=el('select',null,{id});for(let [key,name] of choices)node.add(new Option(name,key??''));node.value=value??'';return node}
  function name(data){return data?.names?.[window.uiLang==='en'?'en_US':'zh_CN']||data?.names?.en_US||''}
  function plain(text){return String(text||'').replace(/<[^>]*>/g,' ')}
- function optionLabel(data){return window.uiLang==='en'?`${data.names.en_US} [${data.id}]`:`${name(data)}${data.titles?.zh_CN?' ? '+data.titles.zh_CN:''} / ${data.names.en_US} [${data.id}]`}
+ function optionLabel(data){return window.uiLang==='en'?`${data.names.en_US} [${data.id}]`:`${name(data)}${data.titles?.zh_CN?' · '+data.titles.zh_CN:''} / ${data.names.en_US} [${data.id}]`}
  function findId(value,collection){if(!value.trim())return null;let bracket=value.trim().match(/\[([^\]]+)\]$/);if(bracket&&collection[bracket[1]])return collection[bracket[1]].id;let lowered=value.trim().toLowerCase();let match=Object.values(collection).find(d=>[d.id,...Object.values(d.names),...Object.values(d.titles||{}),optionLabel(d)].some(v=>String(v).toLowerCase()===lowered));if(!match)throw Error(L('请选择列表中的名称或 ID：','Select a listed name or ID: ')+value);return match.id}
  function message(text){document.getElementById('loadoutStatus').textContent=text}
  function baseState(){return {level:null,spell_ranks:{Q:null,W:null,E:null,R:null},inventory_known:false,items:[]}}
  function emptyPage(){return {primary_path:null,secondary_path:null,primary:[null,null,null,null],secondary:[null,null],shards:[null,null,null]}}
  function atTime(time){let past=(config?.snapshots||[]).filter(s=>s.source_time_s<=time);return past.sort((a,b)=>b.source_time_s-a.source_time_s)[0]||null}
  function datalist(id,data){let list=el('datalist',null,{id});for(let d of Object.values(data))list.append(el('option',null,{value:optionLabel(d)}));return list}
- function symbol(data){let img=el('img',null,{width:28,height:28,alt:name(data)});if(data?.image){img.src=data.image;img.loading='lazy';img.onerror=()=>{img.hidden=true}}else img.hidden=true;return img}
+ function symbol(data){let img=el('img',null,{width:28,height:28,alt:name(data),className:'loadout-icon'});if(data?.image){img.src=data.image;img.loading='lazy';img.onerror=()=>{img.style.visibility='hidden'}}else img.style.visibility='hidden';return img}
  function readSideFixed(side){let old=config?.match_setup.sides[side]||{},page=clone(old.rune_page||emptyPage());
   let hero=document.getElementById(side+'Champion');
   let champion=hero?findId(hero.value,catalog.champions):old.champion;
@@ -40,7 +40,7 @@
   secondary.onchange=()=>{let current=readSideFixed(side);current.rune_page.secondary=[null,null];renderRunes(side,current)};
   root.append(label(L('主系','Primary'),primary),label(L('副系','Secondary'),secondary));
   let main=catalog.rune_paths.find(p=>p.id===page.primary_path),sub=catalog.rune_paths.find(p=>p.id===page.secondary_path);
-  for(let i=0;i<4;i++){let s=select(`${side}_primary${i}`,choices(main?.slots[i]||[],catalog.runes),page.primary[i]);s.disabled=!fixedEditing;let icon=symbol(catalog.runes[s.value]);s.onchange=()=>{icon.replaceWith(icon=symbol(catalog.runes[s.value]));previewRune(side,s.value)};root.append(label((i===0?L('基石','Keystone'):L('主系槽','Primary row')+' '+i),s),icon)}
+  for(let i=0;i<4;i++){let s=select(`${side}_primary${i}`,choices(main?.slots[i]||[],catalog.runes),page.primary[i]);s.disabled=!fixedEditing;let icon=symbol(catalog.runes[s.value]);s.onchange=()=>{icon.replaceWith(icon=symbol(catalog.runes[s.value]));previewRune(side,s.value)};let row=label((i===0?L('基石','Keystone'):L('主系槽','Primary row')+' '+i),s);row.append(icon);root.append(row)}
   for(let i=0;i<2;i++){let ids=(sub?.slots.slice(1)||[]).flat(),s=select(`${side}_secondary${i}`,choices(ids,catalog.runes),page.secondary[i]);s.disabled=!fixedEditing;s.onchange=()=>previewRune(side,s.value);root.append(label(L('副系符文','Secondary rune')+' '+(i+1),s))}
   for(let i=0;i<3;i++){let s=select(`${side}_shards${i}`,choices(catalog.shard_slots[i]||[],catalog.shards),page.shards[i]);s.disabled=!fixedEditing;s.onchange=()=>previewRune(side,s.value,true);root.append(label(L('属性碎片','Stat shard')+' '+(i+1),s))}
   root.append(el('p','',{id:side+'RuneDescription'}));
@@ -50,7 +50,7 @@
   root.append(label(L('当前等级','Current level'),select(side+'Level',[[null,L('未知','Unknown')],...Array.from({length:18},(_,i)=>[i+1,String(i+1)])],state.level)));
   for(let key of ['Q','W','E','R'])root.append(label(key,select(side+'Rank'+key,[[null,L('未确认加点','Rank unknown')],...Array.from({length:7},(_,i)=>[i,String(i)])],state.spell_ranks?.[key])));
   let known=el('input',null,{type:'checkbox',id:side+'InventoryKnown',checked:state.inventory_known===true});root.append(label(L('已确认此时完整背包（空槽表示没有装备）','Full inventory confirmed at this time (blank slots mean empty)'),known));
-  for(let slot=0;slot<7;slot++){let item=state.items?.find(i=>i.slot===slot),data=catalog.items[item?.id],row=el('div');let input=el('input',null,{id:`${side}Item${slot}`,value:data?optionLabel(data):'',placeholder:L('搜索中英文名称 / ID','Search Chinese / English / ID')});input.setAttribute('list',slot===6?'trinketChoices':'itemChoices');input.style.width='65%';
+  for(let slot=0;slot<7;slot++){let item=state.items?.find(i=>i.slot===slot),data=catalog.items[item?.id],row=el('div',null,{className:'inventory-row'});let input=el('input',null,{id:`${side}Item${slot}`,value:data?optionLabel(data):'',placeholder:L('搜索中英文名称 / ID','Search Chinese / English / ID')});input.setAttribute('list',slot===6?'trinketChoices':'itemChoices');
    let quantity=el('input',null,{id:`${side}Quantity${slot}`,type:'number',min:'1',value:String(item?.quantity||1)});quantity.style.width='50px';quantity.title=L('本槽数量','Quantity in this slot');let icon=symbol(data);
    input.onchange=()=>{try{let id=findId(input.value,catalog.items);icon.replaceWith(icon=symbol(catalog.items[id]));document.getElementById(side+'ItemDescription').textContent=plain(catalog.items[id]?.descriptions?.[window.uiLang==='en'?'en_US':'zh_CN']||'')}catch(e){message(e.message)}};
    row.append(el('span',slot===6?L('饰品','Trinket'):L('装备','Item')+' '+(slot+1)),icon,input,quantity);root.append(row)
@@ -71,9 +71,9 @@
   panel.append(el('p',L('锁定数据版本：','Pinned data version: ')+catalog.version));
   if(catalog.warnings.length)panel.append(el('p',catalog.warnings.join('\n'),{className:'warning'}));
   panel.append(datalist('championChoices',catalog.champions),datalist('itemChoices',Object.fromEntries(Object.entries(catalog.items).filter(([,i])=>i.maps?.['11']&&!i.tags.includes('Trinket')))),datalist('trinketChoices',Object.fromEntries(Object.entries(catalog.items).filter(([,i])=>i.maps?.['11']&&i.tags.includes('Trinket')))));
-  let sides=el('div');sides.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px';
-  for(let side of ['blue','red']){let selected=config?.match_setup.sides[side]||{champion:null,rune_page:emptyPage()},root=el('section');root.append(el('h3',side==='blue'?L('蓝方','Blue side'):L('红方','Red side')));let input=el('input',null,{id:side+'Champion',value:selected.champion?optionLabel(catalog.champions[selected.champion]):'',disabled:!fixedEditing,placeholder:L('英雄中英文名称 / ID','Champion Chinese / English name / ID')});input.setAttribute('list','championChoices');input.onchange=()=>showChampion(side).catch(e=>message(e.message));root.append(label(L('英雄','Champion'),input),el('div','',{id:side+'ChampionInfo'}));
-   let runes=el('details');runes.open=true;runes.append(el('summary',L('符文页与属性碎片','Rune page and stat shards')),el('div','',{id:side+'Runes'}));root.append(runes,el('h4',L('此时状态','State at this time')),el('div','',{id:side+'State'}));sides.append(root)
+  let sides=el('div',null,{className:'loadout-sides'});
+  for(let side of ['blue','red']){let selected=config?.match_setup.sides[side]||{champion:null,rune_page:emptyPage()},root=el('section',null,{className:'loadout-side'});root.dataset.side=side;root.append(el('h3',side==='blue'?L('蓝方','Blue side'):L('红方','Red side')));let input=el('input',null,{id:side+'Champion',value:selected.champion?optionLabel(catalog.champions[selected.champion]):'',disabled:!fixedEditing,placeholder:L('英雄中英文名称 / ID','Champion Chinese / English name / ID')});input.setAttribute('list','championChoices');input.onchange=()=>showChampion(side).catch(e=>message(e.message));root.append(label(L('英雄','Champion'),input),el('div','',{id:side+'ChampionInfo',className:'loadout-champion-reference'}));
+   let runes=el('details');runes.open=true;runes.append(el('summary',L('符文页与属性碎片','Rune page and stat shards')),el('div','',{id:side+'Runes',className:'rune-fields'}));root.append(runes,el('h4',L('此时状态','State at this time')),el('div','',{id:side+'State',className:'loadout-state'}));sides.append(root)
   }
   panel.append(sides);for(let side of ['blue','red']){renderRunes(side,config?.match_setup.sides[side]||{champion:null,rune_page:emptyPage()});renderState(side,atTime(frame().source_time_s)?.sides[side]||baseState());showChampion(side).catch(e=>message(e.message))}
   let unlock=el('input',null,{type:'checkbox',id:'unlockFixed',checked:fixedEditing});unlock.onchange=()=>{if(catalog){captureFixed();}fixedEditing=unlock.checked;render()};panel.append(label(L('编辑 / 纠正对局固定配置','Edit / correct fixed match configuration'),unlock),button(L('保存并锁定英雄和符文','Save and lock champions/runes'),saveFixed,'saveFixed'));
