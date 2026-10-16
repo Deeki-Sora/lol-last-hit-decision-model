@@ -1,0 +1,9 @@
+* -text
+*.mp4 -text
+*.webm -text
+*.jpg -text
+*.png -text
+# Frozen bytes and integrity archives must survive checkout unchanged.
+case_data/** -text
+*Analyst_PreRelease_v0.91.md -text
+repository_manifest.json -text

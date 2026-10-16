@@ -1,0 +1,26 @@
+{
+  "A_Veigar": {
+    "lower": 47.678571,
+    "upper": 75.0,
+    "display_lower": 47,
+    "display_upper": 75
+  },
+  "A_Yasuo": {
+    "lower": 63.660714,
+    "upper": 85.178571,
+    "display_lower": 63,
+    "display_upper": 86
+  },
+  "B_Veigar": {
+    "lower": 56.964286,
+    "upper": 84.285714,
+    "display_lower": 56,
+    "display_upper": 85
+  },
+  "B_Yasuo": {
+    "lower": 71.785714,
+    "upper": 93.303571,
+    "display_lower": 71,
+    "display_upper": 94
+  }
+}

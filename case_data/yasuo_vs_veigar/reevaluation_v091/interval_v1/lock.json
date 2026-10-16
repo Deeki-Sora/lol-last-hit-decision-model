@@ -1,0 +1,9 @@
+{
+  "version": "AB-L1-L3-interval-1.0",
+  "sha256": {
+    "inputs.json": "90781b3aa8f2d7d53f446eecea371fbadc08f791fdc7360e68542bc2ddd5b175",
+    "policy.json": "ebf984ef244e0bbc95735709d3cd3f41aa8ad13552c1f67056deaecdcdc9f578",
+    "result.json": "8b0d19207d1f940ae2b727cb01605013edd9f1291dcd87b99163a615091e0ccc",
+    "score_intervals.py": "8bb1172397a8a73029c3245ae35e26fa38e637497817e8bbd1910ae616e0db31"
+  }
+}

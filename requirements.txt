@@ -1,0 +1,2 @@
+# Python >= 3.11. Frozen scoring, merging, extraction and integrity scripts
+# use the Python standard library; no pip dependency is required.

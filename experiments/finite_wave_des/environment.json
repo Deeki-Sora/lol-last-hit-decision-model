@@ -1,0 +1,11 @@
+{
+  "numpy": "2.4.6",
+  "scipy": "1.17.1",
+  "matplotlib": "3.11.2",
+  "Pillow": "12.3.0",
+  "simpy": "4.1.1",
+  "nashpy": "0.0.43",
+  "networkx": "3.4.2",
+  "Deprecated": "1.2.18",
+  "wrapt": "1.17.3"
+}

@@ -1,0 +1,22 @@
+{
+  "python": "3.11.9",
+  "ffmpeg": "ffmpeg version 2026-10-04-git-a35c879992-essentials_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers",
+  "git": "git version 2.52.0.windows.1",
+  "optional_simulation_validation": {
+    "numpy": "2.4.6",
+    "scipy": "1.17.1",
+    "simpy": "4.1.1",
+    "nashpy": "0.0.43"
+  },
+  "validation": {
+    "geometry_tests": 33,
+    "simulation_mechanics_tests": 8,
+    "paired_rollout_smoke_test_particles": 2,
+    "paired_rollout_smoke_test_training_rollouts": 72
+  },
+  "media": {
+    "A_merged_duration_seconds": 86.5255,
+    "original_sources_preserved": true
+  },
+  "frozen_scoring_version": "AB-L1-L3-interval-1.0"
+}

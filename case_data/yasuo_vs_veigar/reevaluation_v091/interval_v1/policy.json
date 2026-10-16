@@ -1,0 +1,13 @@
+{
+  "version": "AB-L1-L3-interval-1.0",
+  "grade_step": 0.25,
+  "vary_items": [
+    "window",
+    "cost_conversion",
+    "resource_execution"
+  ],
+  "scope": "common observed items only; 63 percent of original weight",
+  "interpretation": "rubric sensitivity bounds, not confidence intervals",
+  "rounding": "outward to integer",
+  "omega": 0.65
+}

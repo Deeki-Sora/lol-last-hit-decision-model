@@ -1,0 +1,20 @@
+{
+  "action_tables": [
+    {
+      "file": "action_table_0_3s.csv",
+      "rows": 117,
+      "rows_with_question_marks": 117
+    },
+    {
+      "file": "action_table_2606_0_3s.csv",
+      "rows": 271,
+      "rows_with_question_marks": 271
+    },
+    {
+      "file": "action_table_v2_0_3s.csv",
+      "rows": 131,
+      "rows_with_question_marks": 131
+    }
+  ],
+  "meaning": "Question marks were already in source annotations; not repaired by encoding conversion."
+}

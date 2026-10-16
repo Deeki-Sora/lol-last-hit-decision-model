@@ -1,0 +1,164 @@
+{
+  "strategy_weights": {
+    "window": 0.25,
+    "resource_plan": 0.2,
+    "cooldown": 0.15,
+    "cost_conversion": 0.15,
+    "passive": 0.1,
+    "rune": 0.05,
+    "adaptation": 0.1
+  },
+  "execution_weights": {
+    "regret": 0.35,
+    "position": 0.25,
+    "resource_execution": 0.25,
+    "pressure": 0.15
+  },
+  "omega": 0.65,
+  "ratings": {
+    "A_Yasuo": {
+      "window": 1,
+      "resource_plan": 0.75,
+      "cooldown": null,
+      "cost_conversion": 0.5,
+      "passive": 0.75,
+      "rune": null,
+      "adaptation": 0.75,
+      "regret": null,
+      "position": 0.75,
+      "resource_execution": 0.75,
+      "pressure": 0.75
+    },
+    "A_Veigar": {
+      "window": 0.5,
+      "resource_plan": 0.75,
+      "cooldown": null,
+      "cost_conversion": 0.5,
+      "passive": 0.75,
+      "rune": null,
+      "adaptation": 0.75,
+      "regret": null,
+      "position": 0.5,
+      "resource_execution": 0.75,
+      "pressure": null
+    },
+    "B_Yasuo": {
+      "window": 1,
+      "resource_plan": 1,
+      "cooldown": null,
+      "cost_conversion": 0.75,
+      "passive": null,
+      "rune": null,
+      "adaptation": 0.75,
+      "regret": null,
+      "position": 0.75,
+      "resource_execution": 0.75,
+      "pressure": 1
+    },
+    "B_Veigar": {
+      "window": 0.75,
+      "resource_plan": 0.75,
+      "cooldown": null,
+      "cost_conversion": 0.75,
+      "passive": null,
+      "rune": null,
+      "adaptation": 0.75,
+      "regret": null,
+      "position": 0.75,
+      "resource_execution": 0.5,
+      "pressure": null
+    }
+  },
+  "results": {
+    "A_Yasuo": {
+      "strategy": 78.125,
+      "execution": 75.0,
+      "observed_total": 77.03125,
+      "strategy_coverage": 0.7999999999999999,
+      "execution_coverage": 0.65,
+      "weighted_coverage": 0.7475,
+      "missing_completion_lower": 57.6875,
+      "missing_completion_upper": 82.9375
+    },
+    "A_Veigar": {
+      "strategy": 62.50000000000001,
+      "execution": 62.5,
+      "observed_total": 62.50000000000001,
+      "strategy_coverage": 0.7999999999999999,
+      "execution_coverage": 0.5,
+      "weighted_coverage": 0.6950000000000001,
+      "missing_completion_lower": 43.4375,
+      "missing_completion_upper": 73.9375
+    },
+    "B_Yasuo": {
+      "strategy": 91.07142857142857,
+      "execution": 80.76923076923076,
+      "observed_total": 87.46565934065933,
+      "strategy_coverage": 0.7,
+      "execution_coverage": 0.65,
+      "weighted_coverage": 0.6824999999999999,
+      "missing_completion_lower": 59.8125,
+      "missing_completion_upper": 91.56250000000001
+    },
+    "B_Veigar": {
+      "strategy": 75.0,
+      "execution": 62.5,
+      "observed_total": 70.625,
+      "strategy_coverage": 0.7,
+      "execution_coverage": 0.5,
+      "weighted_coverage": 0.6299999999999999,
+      "missing_completion_lower": 45.06250000000001,
+      "missing_completion_upper": 82.06250000000003
+    }
+  },
+  "common_items": [
+    "adaptation",
+    "cost_conversion",
+    "position",
+    "resource_execution",
+    "resource_plan",
+    "window"
+  ],
+  "common_results": {
+    "A_Yasuo": {
+      "strategy": 78.57142857142858,
+      "execution": 75.0,
+      "observed_total": 77.32142857142858,
+      "strategy_coverage": 0.7,
+      "execution_coverage": 0.5,
+      "weighted_coverage": 0.6299999999999999,
+      "missing_completion_lower": 48.875,
+      "missing_completion_upper": 85.87500000000001
+    },
+    "A_Veigar": {
+      "strategy": 60.71428571428573,
+      "execution": 62.5,
+      "observed_total": 61.33928571428572,
+      "strategy_coverage": 0.7,
+      "execution_coverage": 0.5,
+      "weighted_coverage": 0.6299999999999999,
+      "missing_completion_lower": 38.56250000000001,
+      "missing_completion_upper": 75.56250000000003
+    },
+    "B_Yasuo": {
+      "strategy": 91.07142857142857,
+      "execution": 75.0,
+      "observed_total": 85.44642857142857,
+      "strategy_coverage": 0.7,
+      "execution_coverage": 0.5,
+      "weighted_coverage": 0.6299999999999999,
+      "missing_completion_lower": 54.5625,
+      "missing_completion_upper": 91.56250000000001
+    },
+    "B_Veigar": {
+      "strategy": 75.0,
+      "execution": 62.5,
+      "observed_total": 70.625,
+      "strategy_coverage": 0.7,
+      "execution_coverage": 0.5,
+      "weighted_coverage": 0.6299999999999999,
+      "missing_completion_lower": 45.06250000000001,
+      "missing_completion_upper": 82.06250000000003
+    }
+  }
+}
