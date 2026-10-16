@@ -1,0 +1,5 @@
+# Optional numerical/event/game-theoretic tools cited by the model.
+numpy==2.4.6
+scipy==1.17.1
+simpy==4.1.1
+nashpy==0.0.43

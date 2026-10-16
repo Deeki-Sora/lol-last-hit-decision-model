@@ -1,83 +1,49 @@
-# 短时补兵决策模型与可核验案例
+# 短时补兵决策模型 / Short-window Last-Hit Decision Model
 
-研究一波小兵或约 20–30 秒局部窗口中的目标选择、攻击时机、下一刀保持，以及取得资源所支付的成本。较长案例按局部窗口解释，双方分别评价。
+以一方为中心，在一波小兵或约 20–30 秒的局部窗口内评估攻击目标、出手时机、下一刀可行性，以及双方取得金币和经验所支付的状态成本。
 
-## 主模型
+A player-centered framework for choosing minion targets and attack timing over a finite window, accounting for subsequent last hits, opposing responses, resource acquisition and state costs.
 
-- [主模型 · Analyst v0.91](LoL_补兵时机参数化决策模型_Analyst_PreRelease_v0.91.md)
-- [相同内容的 ASCII 文件名](LoL_Model_Analyst_PreRelease_v0.91.md)
+## 模型文档 / Model documents
 
-文件名沿用 v0.91；正文版本标识为 v0.911。两份文件内容完全相同。
+- **[中文主模型](LoL_补兵时机参数化决策模型_Analyst_PreRelease_v0.91.md)**
+- **[English model](LoL_Model_Analyst_PreRelease_v0.91.md)**
 
-## 亚索 vs 维迦
+两份文档分别为中文与英文版本，章节、数学定义和编号对应。发布文件名为 v0.91，正文标识为 Analyst v0.911。
 
-[案例入口](case_data/yasuo_vs_veigar/README.md)包含原视频、合并后的 A 视频、逐帧图像、原始动作表、合并时间索引、分析记录和固定评分区间。A1/A2 是同一场对线的相邻片段，合并后记为 A；B 是另一场对线。
+模型包含状态信念、合法动作、攻击提交与命中、小兵死亡序列、补刀窗口、自由时间、风险调整和有限策略搜索。它是研究与评估框架；本仓库的基础工具不构成完整的游戏机制实现。
 
-当前评分引用：[四人 1–3 级评分区间](case_data/yasuo_vs_veigar/reevaluation_v091/AB_1到3级评分区间.md)，固定版本 `AB-L1-L3-interval-1.0`。
+## 算法工具与依赖 / Tools and dependencies
 
-这些区间是人工证据编码的敏感性区间，覆盖共同可评项目的原权重 63%，不是统计置信区间、段位映射或完整反事实模拟得分。[数据质量与适用范围](DATA_QUALITY.md)明确了缺失字段和历史分析的边界。
+- [通用事件队列](algorithms/event_queue.py)：外部传入状态、事件和转移函数，不内置特定英雄或对局初态。
+- [像素距离记录](docs/pixel_distance.md)与[计算工具](algorithms/pixel_distance.py)：使用血条中心和地图纹理原点，计算相对像素距离及跨帧位移。
+- [算法依赖说明](docs/algorithm_dependencies.md)：SimPy、NumPy、SciPy、Nashpy，以及可选的信念搜索和博弈工具。
 
-## 运行
+基础工具要求 Python 3.11+，仅使用标准库。主模型中引用的基本数值和博弈工具可安装为：
 
-需要 Python 3.11+。评分和完整性检查使用标准库；视频操作需要 FFmpeg 和 ffprobe。
+```sh
+python -m pip install -r requirements-algorithms.txt
+```
 
-主模型尚不是可直接控制游戏的完整程序。可执行部分包括固定评分复算、[站位几何与短时窗口工具](last_hit_positioning/README.md)，以及[有限兵波事件仿真实验](experiments/finite_wave_des/README.md)。仿真实验使用历史条件初态，不作为亚索/维迦评分的反事实证明。
+FFmpeg 是视频剪辑、合并和抽帧工具，不参与决策或博弈求解。各平台安装命令见[依赖说明](docs/algorithm_dependencies.md#视频编辑工具)。
 
-```powershell
-python case_data/yasuo_vs_veigar/reevaluation_v091/score_intervals.py
+## 参考案例 / Reference cases
+
+[亚索 vs 维迦案例资料](case_data/yasuo_vs_veigar/README.md)提供 A、B 两场对线的视频、截图、动作数据和分析记录。A1/A2 是同一场对线的相邻素材，合并为 A，原片一并保留。
+
+案例用于展示观测与评估过程，不限定模型适用的英雄。其[固定评分区间](case_data/yasuo_vs_veigar/reevaluation_v091/AB_1到3级评分区间.md)属于人工证据编码的敏感性分析，不是玩家段位或完整反事实模拟分数。原始动作表的缺失情况见[数据质量说明](DATA_QUALITY.md)。
+
+## 检查 / Checks
+
+从仓库根目录运行：
+
+```sh
+python -m unittest discover -s algorithms -p "test_*.py"
 python scripts/verify_repository.py
 ```
 
-几何工具无需第三方依赖：
+完整性检查核对文档、资料文件和固定案例结果，不重新为案例打分。使用媒体元数据检查时需要 `ffprobe`。
 
-```powershell
-python -m unittest discover -s last_hit_positioning -p "test_*.py"
-```
+## 许可证 / License
 
-可选仿真实验依赖与测试：
-
-```powershell
-python -m pip install -r requirements-simulation.txt
-python -m unittest discover -s experiments/finite_wave_des -p "test_*.py"
-```
-
-可选安装脚本：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/install.ps1
-# FFmpeg 未安装时，可显式选择：
-powershell -ExecutionPolicy Bypass -File scripts/install.ps1 -InstallFFmpeg
-```
-
-重新生成 A 合并视频和动作索引：
-
-```powershell
-python scripts/prepare_case_media.py --force
-```
-
-FFmpeg 版本或编码器不同可能产生不同视频文件字节；评分证据快照不随视频重编码改变。完整性检查用于验证随仓库交付的归档字节，重生成文件之后应作为独立版本管理。
-
-另取截图时写入新目录，避免覆盖归档证据：
-
-```powershell
-python scripts/extract_frames.py case_data/yasuo_vs_veigar/media/A_merged.mp4 review_frames/A --step 0.3
-```
-
-## 目录
-
-```text
-主模型与 ASCII 别名
-case_data/yasuo_vs_veigar/
-  media/originals/       A1、A2、B 原视频
-  media/A_merged.mp4     A1/A2 去除接缝重叠后的观看版
-  frames_*/             历史 0.3 秒截图
-  verify_0_1s_B/         B 的局部 0.1 秒核验截图
-  reevaluation_v091/    高清证据、分析、脚本与固定评分快照
-  A_combined_action_index.csv
-scripts/                合并、抽帧、安装和完整性检查
-last_hit_positioning/    站位几何、短时窗口和测试
-experiments/finite_wave_des/  简化事件仿真、受限策略实验和测试
-docs/research/          模型变量审计与算法研究说明
-```
-
-视频属于案例研究素材，未在本仓库中授予其再分发许可；代码、模型文字与视频素材的权利不混同。仓库未指定开源许可证。
+模型文档与原创代码采用 [MIT](LICENSE)。第三方录像及其截图等素材不纳入 MIT 授权，详见[许可范围](LICENSE_SCOPE.md)。
