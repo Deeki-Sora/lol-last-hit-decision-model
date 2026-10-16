@@ -27,7 +27,8 @@ def make_server(directory, port=0):
             self.send_header('Cache-Control','no-store')
             self.send_header('X-Content-Type-Options','nosniff')
             self.end_headers()
-            self.wfile.write(data)
+            try:self.wfile.write(data)
+            except (BrokenPipeError,ConnectionAbortedError,ConnectionResetError):pass
 
         def authorized(self):
             return urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query).get('token') == [nonce]
@@ -98,6 +99,15 @@ def make_server(directory, port=0):
                         from .loadouts import configuration_at, number
                         time = number(body['source_time_s'], 'source time')
                         self.respond(configuration_at(directory, read_json(directory/'project.json'), time))
+                    elif path == '/api/parameters':
+                        from .parameters import evaluate_project
+                        from .loadouts import number
+                        self.respond(evaluate_project(directory,read_json(directory/'project.json'),number(body['source_time_s'],'source time'),fetch_native=body.get('fetch_native') is True))
+                    elif path == '/api/range-reference':
+                        from .parameters import evaluate_project,direct_range_reference
+                        from .loadouts import number
+                        parameters=evaluate_project(directory,read_json(directory/'project.json'),number(body['source_time_s'],'source time'))
+                        self.respond(direct_range_reference(parameters,body['actor'],body['skill'],body['distance_game_units']))
                     elif path == '/api/export':
                         self.respond(export_assessment(directory))
                     elif path == '/api/game-draft':

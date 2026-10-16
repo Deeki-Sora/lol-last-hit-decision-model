@@ -28,6 +28,7 @@ def fixture(directory):
         raw=dict(name=ident,title='test',stats=stats,passive={'name':'Passive','description':'Test'},
             spells=[dict(id=k,name=k,maxrank=5,range=[400]*5,cooldown=[5]*5,cost=[10]*5) for k in ['Q','W','E','R']])
         write_json(destination.parent/f'champion_{ident}.json',dict(id=ident,version='16.6.1',locales={'en_US':raw},sources={}))
+        write_json(destination.parent/f'native_{ident}.json',dict(schema_version=2,version='16.6.1',source={'url':'synthetic-test'},base_stats={},adaptive_default='ad',character={'attackSpeedRatioModifiable':{'baseValue':.6}}))
     page=dict(primary_path=100,secondary_path=200,primary=[101,103,105,107],secondary=[203,205],shards=[5005,5008,5001])
     setup=dict(patch='16.6.1',sides={side:dict(champion=champ,rune_page=copy.deepcopy(page)) for side,champ in [('blue','Alpha'),('red','Beta')]})
     def snapshot(time,ident):return dict(source_time_s=time,sides={side:dict(level=1 if time==0 else 2,

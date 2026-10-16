@@ -48,7 +48,22 @@ def draft(project,annotations,frame_id,directory=None):
     if directory is not None:
         from .loadouts import configuration_at
         hero_references=configuration_at(directory,project,frame['source_time_s'])
+        from .parameters import evaluate_project
+        event_parameters=evaluate_project(directory,project,frame['source_time_s']) if project.get('configuration') else None
     else:hero_references={}
+    if directory is None:event_parameters=None
+    if event_parameters:
+        for uid,unit in units.items():
+            if unit['kind']!='hero':continue
+            values=event_parameters['sides'][unit['side']];stats=values['stats']
+            for field,param in [('max_hp','max_hp'),('move_speed','move_speed'),('armor','armor'),('magic_resist','magic_resist'),('hp_regen_s','health_regen')]:unit[field]=stats[param]['value']
+            unit['hp']=values['hp'];unit['attack']['attack_speed']=stats['attack_speed']['value']
+            unit['attack']['period_s']=values['attack_period_s'];unit['attack']['range']=stats['attack_range']['value']
+            unit['attack']['damage']['base']=stats['attack_damage']['value']
+            if values['resource_type'] in ('mana','energy'):
+                unit['resource_model']='finite';unit['mana']=values['resource_value'];unit['max_mana']=stats['max_resource']['value'];unit['mana_regen_s']=stats['resource_regen']['value']
+            # Non-mana meters can have their own effects; do not silently erase them as 'no resource'.
+            elif values['resource_type']=='none':unit.update(resource_model='none',mana=0.,max_mana=0.,mana_regen_s=0.)
     return dict(schema_version=1,enabled=False,frame_id=frame_id,entry_time_s=frame['source_time_s'],horizon_s=3.,
         backend='compare',rules=dict(verified=False,patch=configuration['match_setup']['patch'] if configuration else None,sources=[],geometry='unverified_pixels',
             unit_scope_verified=False,unit_scope_note='',level_up='replan',retarget='replan',hero_aggro='replan',aggro_triggers=[],unmodelled_effects='replan',
@@ -59,6 +74,7 @@ def draft(project,annotations,frame_id,directory=None):
         utility=None,stochastic=dict(samples=16,seed=0,models=[],effects=[]),observations=dict(frame_id=frame_id,image=frame['image'],health_bar_pixels=observations,
             match_configuration=configuration,
             selected_hero_references=hero_references,
+            event_parameters=event_parameters,
             note='Observation references only. Ground positions, effective rules and parameters must be verified; pixels are not copied as game positions.'))
 
 

@@ -110,8 +110,56 @@ def validate_state(state, catalog):
         quantity = entry.get('quantity', 1)
         number(quantity, 'item quantity', 1, max(1, item.get('stacks', 1)), True)
         clean.append(dict(slot=slot, id=ident, quantity=quantity))
+    event=state.get('event_state',{})
+    if not isinstance(event,dict):raise ValueError('event_state must be an object')
+    observed={}
+    for key in ('hp','resource_value','passive_stacks','shield_amount'):
+        value=event.get(key)
+        if value is not None:number(value,key)
+        observed[key]=value
+    if event.get('shield_active') is not None and not isinstance(event['shield_active'],bool):raise ValueError('shield_active must be true/false/null')
+    observed['shield_active']=event.get('shield_active')
+    resource_type=event.get('resource_type','auto')
+    if resource_type not in ('auto','mana','energy','none','other'):raise ValueError('invalid resource type')
+    observed['resource_type']=resource_type
+    adaptive_stat=event.get('adaptive_stat','auto')
+    if adaptive_stat not in ('auto','ad','ap'):raise ValueError('invalid adaptive stat choice')
+    observed['adaptive_stat']=adaptive_stat
+    observed['rune_stacks']={}
+    counters=event.get('rune_stacks',{});skills=event.get('skills',{});given_overrides=state.get('stat_overrides',{})
+    if not all(isinstance(obj,dict) for obj in (counters,skills,given_overrides)):raise ValueError('rune_stacks, skills and stat_overrides must be objects')
+    for ident,value in counters.items():
+        if str(ident) not in catalog['runes']:raise ValueError('unknown rune counter ID')
+        if value is not None:number(value,'rune stacks')
+        observed['rune_stacks'][str(ident)]=value
+    observed['skills']={}
+    skill_fields=('range','remaining_cooldown_s','damage','per_target_cooldown_s','resource_cost','cast_time_s','missile_speed')
+    for key,skill in skills.items():
+        if key not in ('Q','W','E','R') or not isinstance(skill,dict):raise ValueError('invalid skill event state')
+        observed['skills'][key]={}
+        for field in skill_fields:
+            value=skill.get(field)
+            if value is not None:number(value,key+'.'+field)
+            observed['skills'][key][field]=value
+        damage_type=skill.get('damage_type')
+        if damage_type not in (None,'physical','magic','true'):raise ValueError('invalid damage type')
+        observed['skills'][key]['damage_type']=damage_type
+    source=event.get('source','manual')
+    if source not in ('manual','ai','client','unknown'):raise ValueError('invalid observation source')
+    observed['source']=source
+    observed['note']=event.get('note','')
+    if not isinstance(observed['note'],str):raise ValueError('observation note must be text')
+    overrides={}
+    from .stat_arithmetic import STAT_FIELDS
+    allowed=STAT_FIELDS
+    for key,value in given_overrides.items():
+        if key not in allowed:raise ValueError('unknown stat override '+key)
+        if value is not None:number(value,key,low=-1000 if key in ('armor','magic_resist','attack_damage','ability_power') else 0)
+        if value is not None and key in ('armor_penetration_percent','magic_penetration_percent','tenacity','slow_resist','cooldown_reduction'):
+            if value>1 or key=='cooldown_reduction' and value==1:raise ValueError(key+' must be a fraction below 1 (penetration/resistance may equal 1)')
+        overrides[key]=value
     return dict(level=level, spell_ranks={k: ranks.get(k) for k in ('Q', 'W', 'E', 'R')},
-                inventory_known=known, items=clean)
+                inventory_known=known, items=clean,event_state=observed,stat_overrides=overrides)
 
 
 def save_configuration(directory, payload):

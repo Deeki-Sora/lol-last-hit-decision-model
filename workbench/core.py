@@ -320,6 +320,8 @@ def export_assessment(directory, bundle=True):
         write_json(dest/'configuration.json', p['configuration'])
         write_json(dest/'hero_states.json', [dict(source_time_s=s['source_time_s'],
             sides=configuration_at(directory,p,s['source_time_s'])) for s in p['configuration']['snapshots']])
+        from .parameters import evaluate_project
+        write_json(dest/'event_parameters.json',[evaluate_project(directory,p,s['source_time_s']) for s in p['configuration']['snapshots']])
     (dest/'strategy_reference.md').write_text(p.get('strategy_text',''),encoding='utf-8')
     (dest/'evaluation_request.md').write_text((ROOT/'docs/evaluation_request_template.md').read_text(encoding='utf-8'),encoding='utf-8')
     guide=ROOT/'docs/short_horizon.md'
