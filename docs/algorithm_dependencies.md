@@ -19,7 +19,9 @@ python -m pip install -r requirements-algorithms.txt
 
 仓库中的事件队列、像素距离工具和固定区间复算只使用 Python 标准库，不依赖上述可选库。
 
-主程序 `python main.py` 的采样与标注工作台同样使用标准库；采样需要 FFmpeg。`python main.py solve --matrix assessed_matrix.json --output solution.json` 使用 NumPy/SciPy 求解评估后的有限两人零和矩阵。Nashpy、SimPy 等作为自定义实现的可选项，不会自动获得游戏机制。
+主程序 `python main.py` 的采样、标注、机制观察统计和 compare 事件推演使用标准库；采样需要 FFmpeg。可选 `python -m pip install -r requirements-game.txt` 安装矩阵工具；game-run 的 zero_sum 使用 NumPy/SciPy，general_sum 使用 Nashpy，输入收益来自已声明机制和初态的事件分支。独立的 solve 命令可处理外部已算好的零和矩阵。工作台提供 PyPI 下载链接，不会自动安装。
+
+SimPy、pomdp_py、PyGambit、OpenSpiel 等仍供外部机制适配与搜索扩展；内置推演不依赖这些库，也不宣称已实现其完整算法。状态、合法动作和游戏规则不会通过安装库自动补齐。完整操作及机制范围见 [短时推演说明](short_horizon.md)。
 
 颜色填充候选可用 `python -m pip install -r requirements-vision.txt` 安装 Pillow，再在 sample 子命令加 `--proposals`。候选不是已确认的血条中心，需要复核。
 

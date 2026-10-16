@@ -170,8 +170,8 @@ class Sampling(unittest.TestCase):
             shutil.copy2(root/'docs/evaluation_request_template.md',distribution/'docs/evaluation_request_template.md')
             video=directory/'source.mp4'
             subprocess.run(['ffmpeg','-v','error','-f','lavfi','-i','testsrc2=size=320x180:rate=30','-t','1','-c:v','libx264',str(video)],check=True)
-            subprocess.run([sys.executable,'main.py','sample','--video',str(video),'--start','0','--end','.8','--step','.3','--output','runs/session'],cwd=distribution,stdout=subprocess.PIPE,check=True)
-            subprocess.run([sys.executable,'main.py','export','runs/session'],cwd=distribution,stdout=subprocess.PIPE,check=True)
+            subprocess.run([sys.executable,'-S','main.py','sample','--video',str(video),'--start','0','--end','.8','--step','.3','--output','runs/session'],cwd=distribution,stdout=subprocess.PIPE,check=True)
+            subprocess.run([sys.executable,'-S','main.py','export','runs/session'],cwd=distribution,stdout=subprocess.PIPE,check=True)
             self.assertTrue((distribution/'runs/session/assessment_bundle.zip').is_file())
             self.assertFalse((distribution/'example').exists())
 

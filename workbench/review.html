@@ -40,10 +40,24 @@ body{font:15px system-ui;margin:20px;background:#141b25;color:#ebf0f6}button,inp
 <textarea id="heroes" spellcheck="false"></textarea><p>每方需有 champion、patch、runes、items、effective_state 和 verified_effective_state。后者仅在人工核验后设为 true。</p></details>
 <details><summary>一般对线策略参考（可选）</summary><textarea id="strategy" placeholder="纯文字策略、适用条件、来源链接、版本和访问日期"></textarea></details>
 </section>
+<section class="panel"><h2>可选：从当前时刻进行短时事件与博弈推演</h2>
+<label><input id="gameEnabled" type="checkbox">启用此项（默认关闭，不影响采样、距离或普通评估）</label>
+<p>先选择介入帧，再生成任务。英雄/小兵机制、有效参数、攻击相位、地面坐标和候选动作需核验；升级、未知转火、仇恨或未实现效果会截断共同有效窗口。</p>
+<p>金币、经验、血蓝和冷却成本分别结算；未死小兵不视为永久损失。不自动给出胜负或玩家分数。</p>
+<p id="gameTools"></p><pre id="gameInstall"></pre>
+<details><summary>非指向技能、被动、符文的观察概率与频率</summary>
+<p>每次技能释放或满足条件的触发机会只记一行，不能把多张截图当作多次机会。已知触发规则优先使用确定计数器；未知结果留空。技能命中、被动触发和符文触发分别使用不同 mechanism_id，并按距离、移动、等级等条件分组。</p>
+<a id="mechanicsTemplate" download="mechanics_observations.csv">下载 UTF-8 BOM 观察表模板</a> · <a id="mechanicsAdapters" download="mechanic_adapters.json">下载通用机制 JSON 模板</a><input id="mechanicsCsv" type="file" accept=".csv">
+<button id="useModels">将统计模型写入任务（仍须核验适用条件）</button><pre id="mechanicsStatus" style="white-space:pre-wrap"></pre></details>
+<p><button id="gameDraft">以当前帧生成任务</button><select id="gameBackend"><option value="compare">仅事件分支比较（无需下载）</option><option value="zero_sum">有限零和相对收益（SciPy）</option><option value="general_sum">双方独立收益（Nashpy）</option></select></p>
+<textarea id="gameTask" style="min-height:220px" spellcheck="false" placeholder="生成草稿后，人工或 AI 填写并核验。没有内置任何英雄的参数。"></textarea>
+<p><button id="gameRun">运行已核验任务</button><a href="https://github.com/Deeki-Sora/lol-last-hit-decision-model/blob/main/docs/short_horizon.md" target="_blank" rel="noopener">机制范围与任务格式</a></p>
+<p id="gameStatus" role="status"></p><div id="gameResults"></div></section>
 <script>
 'use strict';
 const $=id=>document.getElementById(id), token=new URLSearchParams(location.search).get('token');
 const url=path=>path+'?token='+encodeURIComponent(token);
+let estimatedModels;
 let p,a,proposals,index=0,img=new Image(),drag=null,dirty=false,activeId;
 const canvas=$('canvas'),ctx=canvas.getContext('2d');
 function frame(){return p.frames[index]}
@@ -81,5 +95,12 @@ $('export').onclick=async()=>{try{await save();let coverage=await api('/api/expo
 $('import').onchange=async e=>{try{let v=JSON.parse(await e.target.files[0].text());if(v.schema_version!==1||!v.frames)throw Error('不是有效标注 JSON');a=v;dirty=true;loadFields();status('已载入标注。保存时将执行结构校验。')}catch(error){status(error.message)}};
 window.onbeforeunload=e=>{if(dirty){e.preventDefault();e.returnValue=''}};
 document.addEventListener('input',()=>{dirty=true});
+api('/api/game-tools').then(tools=>{for(let key of ['zero_sum','general_sum']){let info=tools[key],link=document.createElement('a');link.href=info.url;link.target='_blank';link.rel='noopener';link.textContent=`${key}: ${info.installed?'已安装':'未安装，可选下载'}`;$('gameTools').append(link,document.createTextNode(' · '))}$('gameInstall').textContent='可选安装命令（自行在本机终端运行，不自动下载）：\npython -m pip install -r requirements-game.txt'}).catch(e=>{$('gameStatus').textContent=e.message});
+$('mechanicsTemplate').href=url('/api/mechanics-template');
+$('mechanicsAdapters').href=url('/api/mechanics-adapters');
+$('mechanicsCsv').onchange=async e=>{try{estimatedModels=await api('/api/estimate-probabilities',{csv:await e.target.files[0].text()});$('mechanicsStatus').textContent=JSON.stringify(estimatedModels,null,2)}catch(error){$('mechanicsStatus').textContent=error.message}};
+$('useModels').onclick=()=>{try{if(!estimatedModels)throw Error('先导入观察 CSV');let task=JSON.parse($('gameTask').value);task.stochastic??={samples:16,seed:0,models:[],effects:[]};let ids=new Set(estimatedModels.models.map(m=>m.id));task.stochastic.models=[...(task.stochastic.models||[]).filter(m=>!ids.has(m.id)),...estimatedModels.models];$('gameTask').value=JSON.stringify(task,null,2);$('gameStatus').textContent='已写入观察统计。context_verified 保持 false，需核验距离、移动、机制条件及反事实适用性；触发概率不会替代确定规则。'}catch(e){$('gameStatus').textContent=e.message}};
+$('gameDraft').onclick=async()=>{try{await save();let task=await api('/api/game-draft',{frame_id:frame().id});$('gameTask').value=JSON.stringify(task,null,2);$('gameStatus').textContent=`任务介入时刻：视频 ${task.entry_time_s.toFixed(3)} s。草稿未核验，必须补齐参数才能运行。`}catch(e){$('gameStatus').textContent=e.message}};
+$('gameRun').onclick=async()=>{if(!$('gameEnabled').checked){$('gameStatus').textContent='可选推演未启用；其他计算不受影响。';return}try{let task=JSON.parse($('gameTask').value);task.enabled=true;task.backend=$('gameBackend').value;let data=await api('/api/game-run',{task});$('gameStatus').textContent=`有效窗口 ${data.result.effective_horizon_s.toFixed(3)} s；结果已保存 game_analysis/${data.folder}/。`;$('gameResults').replaceChildren();let pre=document.createElement('pre');pre.style.whiteSpace='pre-wrap';pre.textContent=JSON.stringify({replan_reasons:data.result.replan_reasons,branches:data.result.branches.map(b=>({blue_policy:b.blue_policy,red_policy:b.red_policy,legal:b.legal,metrics:b.metrics})),solver:data.result.solver},null,2);let link=document.createElement('a');link.href=url(`/game_analysis/${data.folder}/result.json`);link.textContent='下载完整推演结果 JSON';link.download='result.json';$('gameResults').append(link,pre)}catch(e){$('gameStatus').textContent=e.message}};
 api('/api/state').then(s=>{p=s.project;a=s.annotations;proposals=s.proposals;$('slider').max=p.frames.length-1;options();$('heroes').value=JSON.stringify(p.hero_data,null,2);$('strategy').value=p.strategy_text||'';let c=p.calibration;$('scale').value=c?`${c.pixels}=${c.game_units}`:'';show(0);dirty=false}).catch(e=>status(e.message));
 </script></html>

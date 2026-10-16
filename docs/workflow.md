@@ -90,10 +90,30 @@ python main.py fetch-data --version 16.6.1 --blue Yasuo --red Veigar --output he
 
 可选纯文字策略参考应写来源、适用等级、触发条件、成本与失效条件。将资料包交给 AI 或人工，按 evaluation_request.md 分别评价双方。未来推演、反事实以及评分需要补全机制、候选动作、敌方回应与固定评分配置；工作台不从画面自动推导可靠总分。当前为录像/暂停画面工作流，实时工程可接入同一数据结构，未提供游戏内自动控制或实时采集器。
 
-## 6. 评估后的可选博弈求解
+## 6. 可选短时事件与博弈推演
+
+完成观测核验后，可在最终评分之前选择介入帧，生成共同初态及有限候选。默认 compare 无需下载数值包，输出事件链、双方成本和待结算资源；通过已声明机制推进，而不要求先手填收益矩阵。
 
 ```sh
-python -m pip install -r requirements-algorithms.txt
+python main.py game-draft runs/session/clip_01 --frame f000010 --output task.json
+python main.py game-run runs/session/clip_01 --task task.json
+```
+
+任务需要先人工或 AI 补齐参数、核验规则并设置 enabled=true。详见 [完整机制与概率输入说明](short_horizon.md)。升级或已声明机制失效后，所有分支使用最早共同终点，重新取得有效状态后才继续；不能沿用升级前的技能组。已知被动/符文规则采用计数器，隐藏初态采用情景，非指向技能采用经过适用条件核验的联合命中结果。独立机会 CSV、条件频率、后验情景和固定种子复算均在同一入口中完成。
+
+矩阵求解另外选择 zero_sum 或 general_sum 并声明适用于有效终点的效用配置：
+
+```sh
+python -m pip install -r requirements-game.txt
+```
+
+不启用推演不会影响任何表格或普通评估。推演和概率观察记录也会收入评估包。待结算资源和边界价值分别报告，不用短时金币差判定博弈失败。
+
+## 7. 外部已知收益矩阵接口
+
+独立的 solve 入口可直接处理已经算好的有限零和矩阵：
+
+```sh
 python main.py solve --matrix assessed_matrix.json --output matrix_solution.json
 ```
 
@@ -103,6 +123,6 @@ python main.py solve --matrix assessed_matrix.json --output matrix_solution.json
 {"game_type":"two_player_zero_sum","assessment_reference":"assessment/result.md#decision-1","row_actions":["a","b"],"column_actions":["x","y"],"payoff_matrix":[[1,-1],[-1,1]],"payoff_unit":"declared normalized resource differential"}
 ```
 
-行是我方动作，列是对方回应，收益为行方的明确标量。程序返回双方混合策略、有限矩阵价值和对偶误差。一般对线可能不是零和；无法合理映射成零和时不要使用此入口，使用 Nashpy 等自行实现一般和求解。外部收益矩阵依赖评估中的假设；求解结果不代表完整游戏均衡或玩家段位。
+行是我方动作，列是对方回应，收益为行方的明确标量。程序返回双方混合策略、有限矩阵价值和对偶误差。一般对线可能不是零和；一般和任务可使用 game-run 的 general_sum 模式。外部收益矩阵依赖评估中的假设，求解结果不代表完整游戏均衡或玩家段位。
 
 通用离散事件调度见 algorithms/event_queue.py，调用方提供机制转移函数。它不含特定英雄初态或完整伤害/寻路规则。评估者可以用它运行已声明的有限兵链及反事实，再把结果转成收益矩阵；主程序没有预设任何对局分支。

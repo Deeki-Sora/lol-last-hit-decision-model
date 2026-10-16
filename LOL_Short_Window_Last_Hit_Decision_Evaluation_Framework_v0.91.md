@@ -911,6 +911,50 @@ V_t(\Omega_t)=\max_{a\in\mathcal A_M(\Omega_t)}
 
 Stop at the shared endpoint or task completion. In practice, expand only finite branches relevant to the current target, next target and key interacting units.
 
+## 48.1 Validity boundaries and local payoffs
+
+A local game starts at a selected observation. For finite conditional policies \(\pi,\rho\) and a declared scenario \(\omega\), let \(\tau\) be the first level-up, unsupported transition or departure from verified context. Recompute every branch through the common valid endpoint:
+
+\[
+T^*=\min\left(T,\min_{\pi,\rho,\omega}\tau(\pi,\rho,\omega)\right).
+\]
+
+A level-up requires updated effective stats, skill-point choice and legal actions before continuing. An earlier solution has no validity beyond its boundary. Preserve each player's earned-resource and state-cost vector before scalarization. With explicit weights and boundary assumptions:
+
+\[
+M_p(\pi,\rho)=\frac1K\sum_{k=1}^{K}\left[\mathbf w_p^\top\mathbf z_p(T^*;\pi,\rho,\omega_k)+V_{p,\mathrm{boundary}}(\Omega_{T^*}^{(k)})\right].
+\]
+
+Living minions, committed attacks, unused skills, passive resources and remaining health/mana are boundary state, not automatically earned or permanently denied resources. Without justified terminal valuation, report unpriced state and conditional local comparisons. Temporary sacrifice is not a defeat classification. General-sum search retains \((M_A,M_B)\); \(M_A-M_B\) is zero-sum only by explicit choice. Bind the payoff configuration to patch, entry time, effective endpoint, policy set, probability sources, normalization and random seed. Optional game solving is not required for event measurement or ordinary assessment.
+
+## 48.2 Conditional probabilities and stateful effects
+
+Count distinct opportunities, not screenshots. For \(n\) eligible opportunities with known outcomes, \(k\) successful activations, confirmed observed activations \(N_{obs}\), and the complete declared observation duration \(\Delta T_{obs}\):
+
+\[
+\widehat\theta=\frac{k}{n},\qquad f_{obs}=\frac{N_{obs}}{\Delta T_{obs}}.
+\]
+
+Unknown eligibility can prevent conditional-rate estimation without preventing observation of an activation. Unknown outcomes are excluded from \(n\) and disclosed, never counted as failures; incomplete activation observations make frequency a lower bound. Record skill hits, passive activations and rune activations separately and stratify by range, movement, level, patch and opportunity conditions.
+
+\[
+P(\mathrm{proc}\mid\Omega,a)=\mathbf1_{\mathrm{eligible}(\Omega,a)}\,\theta(\Omega,a).
+\]
+
+Known deterministic rules use \(\theta=1\), explicit counters, cooldowns and unique-action conditions. Uncertain initial counter/cooldown states are state scenarios. An observed trigger frequency cannot replace known rules. With an explicitly declared appropriate Beta prior for conditional binary observations:
+
+\[
+\theta\mid k,n\sim\operatorname{Beta}(k+\alpha,n-k+\beta).
+\]
+
+Non-targeted multi-unit skills use a joint hit set rather than independent unit-hit draws:
+
+\[
+B\sim P(B\mid\Omega,a),\qquad B\subseteq\mathcal U,\qquad |B|\leq m_a.
+\]
+
+Outcomes must respect collision, penetration and collateral effects. Even when \(B=\varnothing\), cast costs and committed cooldowns apply. Rune/passive eligibility follows the realized hit events. Context-specific probabilities cannot legalize out-of-range, unlearned or cooldown-blocked actions or be reused after leaving context. Compare paired scenarios with fixed seeds; scenario percentiles are not automatically confidence intervals, win probabilities or calibrated player-behavior frequencies. Stop or use a verified adapter for unimplemented state transitions; a probability is not a replacement for missing rules.
+
 # 49. Player-centered Probabilistic Event Algorithm
 
 ## Step 1: Establish the window

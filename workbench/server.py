@@ -43,6 +43,14 @@ def make_server(directory, port=0):
                     state = {k:read_json(directory/f'{k}.json') for k in ['project','annotations']}
                     state['proposals'] = read_json(directory/'proposals.json') if (directory/'proposals.json').exists() else {}
                 return self.respond(state)
+            if path == '/api/game-tools':
+                from .game_tools import availability
+                return self.respond(availability())
+            if path == '/api/mechanics-template':
+                from .mechanic_observations import template
+                return self.respond(b'\xef\xbb\xbf'+template().encode('utf-8'),'text/csv; charset=utf-8')
+            if path == '/api/mechanics-adapters':
+                return self.respond(read_json(Path(__file__).resolve().parents[1]/'templates/mechanic_adapters.json'))
             target = (directory/path.lstrip('/')).resolve()
             if not target.is_relative_to(directory) or not target.is_file() or target.suffix.lower() not in {'.jpg','.csv','.zip','.json'}:
                 return self.respond({'error':'not found'},status=404)
@@ -73,9 +81,22 @@ def make_server(directory, port=0):
                         self.respond({'saved':True})
                     elif path == '/api/export':
                         self.respond(export_assessment(directory))
+                    elif path == '/api/game-draft':
+                        from .game_tools import draft
+                        self.respond(draft(read_json(directory/'project.json'),read_json(directory/'annotations.json'),body['frame_id']))
+                    elif path == '/api/game-run':
+                        from .game_tools import save_run
+                        self.respond(save_run(directory,body['task']))
+                    elif path == '/api/estimate-probabilities':
+                        from .mechanic_observations import estimate
+                        result=estimate(body['csv'])
+                        folder=directory/'mechanics';folder.mkdir(exist_ok=True)
+                        (folder/'observations.csv').write_text(body['csv'],encoding='utf-8-sig')
+                        write_json(folder/'estimated_models.json',result)
+                        self.respond(result)
                     else:
                         self.respond({'error':'not found'},status=404)
-            except (ValueError,KeyError,TypeError,OSError) as error:
+            except (ValueError,KeyError,TypeError,OSError,ImportError) as error:
                 self.respond({'error':str(error)},status=400)
 
     server = ThreadingHTTPServer(('127.0.0.1',port),Handler)

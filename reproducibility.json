@@ -14,7 +14,12 @@
       0.5
     ],
     "data_dragon_lookup": "16.6.1 Yasuo and Veigar HTTPS verified",
-    "portable_cli": "sampling and bundle export tested without example directory"
+    "portable_cli": "sampling and bundle export tested without example directory",
+    "workbench_and_planning_tests": 47,
+    "total_tests": 59,
+    "optional_dependencies": "sampling/export and compare CLI passed with Python -S (site packages disabled)",
+    "probabilistic_mechanics": "paired fixed-seed scenarios, conditional eligibility, joint hits, hidden joint states, missingness and observation deduplication",
+    "level_and_target_changes": "common endpoint and refreshed state required"
   },
   "media": {
     "A_merged_duration_seconds": 86.5255,
@@ -29,6 +34,12 @@
     "license": "MIT for original code and model documents; third-party media excluded",
     "algorithm_initial_state": "supplied by caller",
     "runtime": "Python standard library plus FFmpeg/ffprobe; optional vision, CA and solver packages",
-    "distance_scope": "opposing heroes and each hero to explicitly selected opposing living minions, with no fixed minion count limit"
+    "distance_scope": "opposing heroes and each hero to explicitly selected opposing living minions, with no fixed minion count limit",
+    "optional_game_backends": [
+      "compare (stdlib)",
+      "zero_sum (SciPy/HiGHS)",
+      "general_sum (Nashpy)"
+    ],
+    "champion_profiles": "not bundled; user/AI supplies verified patch-scoped effective inputs"
   }
 }

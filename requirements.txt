@@ -1,3 +1,4 @@
 # Python >= 3.11. The main workbench and general algorithms use the standard library.
 # FFmpeg/ffprobe must be installed separately and available on PATH.
-# Optional: requirements-vision.txt, requirements-algorithms.txt, requirements-test.txt.
+# Optional: requirements-vision.txt, requirements-data.txt, requirements-game.txt,
+# requirements-algorithms.txt and requirements-test.txt.

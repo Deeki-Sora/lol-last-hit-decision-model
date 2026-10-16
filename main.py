@@ -71,6 +71,12 @@ def main(argv=None):
     f=sub.add_parser('fetch-data');f.add_argument('--version',required=True);f.add_argument('--blue',required=True)
     f.add_argument('--red',required=True);f.add_argument('--language',default='en_US');f.add_argument('--output',required=True)
     g=sub.add_parser('solve');g.add_argument('--matrix',required=True);g.add_argument('--output',required=True)
+    gd=sub.add_parser('game-draft',help='Create an unverified optional planning task from a chosen observation')
+    gd.add_argument('project');gd.add_argument('--frame',required=True);gd.add_argument('--output',required=True)
+    gr=sub.add_parser('game-run',help='Run an explicitly enabled bounded event task; no solver required for comparison')
+    gr.add_argument('project');gr.add_argument('--task',required=True)
+    mt=sub.add_parser('mechanics-template');mt.add_argument('--output',required=True)
+    me=sub.add_parser('estimate-probabilities');me.add_argument('--csv',required=True);me.add_argument('--output',required=True)
     args=p.parse_args(argv)
     try:
         if not args.command:
@@ -92,6 +98,20 @@ def main(argv=None):
             print('Base data saved. Verify effective stats, runes, items, ranks and passive state before evaluation.')
         elif args.command=='solve':
             write_json(args.output,solve_matrix(read_json(args.matrix)))
+        elif args.command=='game-draft':
+            from workbench.game_tools import draft
+            directory=Path(args.project)
+            write_json(args.output,draft(read_json(directory/'project.json'),read_json(directory/'annotations.json'),args.frame))
+        elif args.command=='game-run':
+            from workbench.game_tools import save_run
+            saved=save_run(args.project,read_json(args.task))
+            print(json.dumps({'folder':saved['folder'],'status':saved['result']['status'],'effective_horizon_s':saved['result']['effective_horizon_s'],'samples':saved['result']['samples']} if 'result' in saved else saved,indent=2))
+        elif args.command=='mechanics-template':
+            from workbench.mechanic_observations import template
+            Path(args.output).write_text(template(),encoding='utf-8-sig')
+        elif args.command=='estimate-probabilities':
+            from workbench.mechanic_observations import estimate
+            write_json(args.output,estimate(Path(args.csv).read_text(encoding='utf-8-sig')))
     except (ValueError,OSError,KeyError,ImportError) as error:
         p.exit(2,f'Error: {error}\n')
 

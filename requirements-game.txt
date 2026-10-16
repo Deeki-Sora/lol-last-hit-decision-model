@@ -1,0 +1,5 @@
+# Optional finite matrix solvers. Sampling, measurement, and event comparison
+# work without these packages. No champion data or weights are bundled.
+numpy==2.4.6
+scipy==1.17.1
+nashpy==0.0.43

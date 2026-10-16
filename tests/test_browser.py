@@ -7,6 +7,8 @@ import subprocess
 import tempfile
 import threading
 import unittest
+import json
+import zipfile
 from workbench.core import sample, read_json
 from workbench.server import make_server
 
@@ -60,6 +62,28 @@ class BrowserWorkflow(unittest.TestCase):
                     self.assertIn('red_siege_w2_1',[u['id'] for u in roster])
                     self.assertIn('red_siege_w2_2',[u['id'] for u in roster])
                     self.assertEqual(len(read_json(project/'annotations.json')['frames']['f000001']['distance_minions']),14)
+                    page.locator('#gameRun').click()
+                    self.assertFalse((project/'game_analysis').exists())
+                    page.locator('#gameDraft').click()
+                    page.wait_for_function("document.querySelector('#gameTask').value.includes('entry_time_s')")
+                    page.locator('summary').filter(has_text='非指向技能、被动、符文的观察概率与频率').click()
+                    observed='opportunity_id,mechanism_id,kind,event_type,actor,target,source_time_s,eligible,success,outcome_id,hit_unit_ids,window_start_s,window_end_s,context,source\none,hit,binary,skillshot_hit,blue_hero,red_hero,0.1,true,true,,,0,0.8,synthetic,frame1\n'
+                    page.locator('#mechanicsCsv').set_input_files({'name':'observations.csv','mimeType':'text/csv','buffer':observed.encode()})
+                    page.wait_for_function("document.querySelector('#mechanicsStatus').textContent.includes('eligible_trials')")
+                    page.locator('#useModels').click()
+                    self.assertFalse(json.loads(page.locator('#gameTask').input_value())['stochastic']['models'][0]['context_verified'])
+                    from test_short_horizon import task
+                    complete=json.loads(json.dumps(task()).replace('"bh"','"blue_hero"').replace('"rh"','"red_hero"').replace('"rm"','"red_melee_w1_1"'))
+                    complete['frame_id']='f000001';complete['entry_time_s']=0
+                    page.locator('#gameTask').fill(json.dumps(complete));page.locator('#gameEnabled').check()
+                    page.locator('#gameRun').click()
+                    page.wait_for_selector('#gameResults a',timeout=20000)
+                    with page.expect_response(lambda response:'/api/export?' in response.url) as response:
+                        page.locator('#export').click()
+                    response.value.json()
+                    with zipfile.ZipFile(project/'assessment_bundle.zip') as bundle:
+                        self.assertIn('mechanics/estimated_models.json',bundle.namelist())
+                        self.assertTrue(any(n.startswith('game_analysis/') and n.endswith('/result.json') for n in bundle.namelist()))
                     self.assertFalse(errors)
                     screenshot=os.environ.get('LOL_UI_SCREENSHOT')
                     if screenshot:page.screenshot(path=screenshot,full_page=True)

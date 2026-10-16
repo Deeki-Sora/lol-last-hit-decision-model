@@ -1,0 +1,60 @@
+{
+  "note": "Unverified structure templates only. Fill every required null, verify applicability and sources, and use actual workspace unit IDs. No champion data or observed probabilities are supplied.",
+  "binary_model": {
+    "id": "conditional_proc_model",
+    "kind": "binary",
+    "sampling": "empirical",
+    "eligible_trials": null,
+    "successes": null,
+    "context_verified": false,
+    "context_note": "",
+    "source": ""
+  },
+  "joint_hit_model": {
+    "id": "joint_hit_model",
+    "kind": "joint_hits",
+    "sampling": "empirical",
+    "context_verified": false,
+    "context_note": "",
+    "source": "",
+    "distance_interval": [null, null],
+    "target_motion": null,
+    "outcomes": [
+      {"id": "miss", "hits": [], "count": null},
+      {"id": "verified_hit_set", "hits": [], "count": null}
+    ]
+  },
+  "skillshot_profile": {
+    "delivery": "skillshot_probability",
+    "range_mode": "center_to_center",
+    "commit": "start",
+    "interruptible_by_move": false,
+    "effect": "damage",
+    "rank": null,
+    "cast_s": null,
+    "cooldown_s": null,
+    "cost": null,
+    "range": null,
+    "missile_speed": null,
+    "ready_in_s": null,
+    "outcome_model": "joint_hit_model",
+    "collateral_scope_verified": false,
+    "impact_delay_s": null,
+    "max_hits": null,
+    "damage": {"type": null, "base": null, "target_current_hp_ratio": null, "target_max_hp_ratio": null}
+  },
+  "effect_adapter": {
+    "id": "effect_id",
+    "actor": null,
+    "trigger": "spell_hit",
+    "verified": false,
+    "source": "",
+    "ready_in_s": null,
+    "cooldown_s": null,
+    "labels": [],
+    "target_kinds": [],
+    "counter": {"threshold": null, "window_s": null, "unique_casts": true, "initial_hits": []},
+    "probability_model": null,
+    "effect": {"kind": "shield", "target": "self", "amount": null, "duration_s": null, "shield_type": "all"}
+  }
+}
