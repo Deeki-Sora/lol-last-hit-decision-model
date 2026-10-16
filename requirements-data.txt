@@ -1,0 +1,2 @@
+# Optional public CA bundle for Python installations without system root certificates.
+certifi>=2025.1.31

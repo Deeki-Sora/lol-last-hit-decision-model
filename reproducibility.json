@@ -5,7 +5,16 @@
   "validation": {
     "model_utility_tests": 12,
     "frozen_score_replay": "two identical executions",
-    "bilingual_model_check": "section numbering and displayed formulas; localized text labels allowed"
+    "bilingual_model_check": "section numbering and displayed formulas; localized text labels allowed",
+    "workbench_unit_tests": 13,
+    "browser_workflow_tests": 1,
+    "video_sampling_intervals_s": [
+      0.1,
+      0.3,
+      0.5
+    ],
+    "data_dragon_lookup": "16.6.1 Yasuo and Veigar HTTPS verified",
+    "portable_cli": "sampling and bundle export tested without example directory"
   },
   "media": {
     "A_merged_duration_seconds": 86.5255,
@@ -18,6 +27,8 @@
       "en"
     ],
     "license": "MIT for original code and model documents; third-party media excluded",
-    "algorithm_initial_state": "supplied by caller"
+    "algorithm_initial_state": "supplied by caller",
+    "runtime": "Python standard library plus FFmpeg/ffprobe; optional vision, CA and solver packages",
+    "distance_scope": "opposing heroes and each hero to explicitly selected opposing living minions, with no fixed minion count limit"
   }
 }

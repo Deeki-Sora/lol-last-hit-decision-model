@@ -19,6 +19,12 @@ python -m pip install -r requirements-algorithms.txt
 
 仓库中的事件队列、像素距离工具和固定区间复算只使用 Python 标准库，不依赖上述可选库。
 
+主程序 `python main.py` 的采样与标注工作台同样使用标准库；采样需要 FFmpeg。`python main.py solve --matrix assessed_matrix.json --output solution.json` 使用 NumPy/SciPy 求解评估后的有限两人零和矩阵。Nashpy、SimPy 等作为自定义实现的可选项，不会自动获得游戏机制。
+
+颜色填充候选可用 `python -m pip install -r requirements-vision.txt` 安装 Pillow，再在 sample 子命令加 `--proposals`。候选不是已确认的血条中心，需要复核。
+
+浏览器自动化测试为开发可选项：`python -m pip install -r requirements-test.txt` 后运行 `python -m playwright install chromium`；再运行 tests/ 下的测试。使用本机 Edge 时可设置环境变量 `LOL_BROWSER_CHANNEL=msedge`，不需要安装 Chromium。实际使用工作台只需普通浏览器，不需要 Playwright。
+
 ## 视频编辑工具
 
 [FFmpeg](https://ffmpeg.org/)用于视频剪辑、合并和抽帧，`ffprobe` 用于读取媒体元数据。它不是博弈求解器，也不是模型的决策算法。

@@ -1,0 +1,2 @@
+# Optional color-region proposals. Confirm complete health-bar centers manually.
+Pillow==12.3.0

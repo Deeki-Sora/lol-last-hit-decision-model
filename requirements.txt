@@ -1,2 +1,3 @@
-# Python >= 3.11. General utilities, fixed case scoring and integrity checks
-# use the standard library. Optional solver packages: requirements-algorithms.txt.
+# Python >= 3.11. The main workbench and general algorithms use the standard library.
+# FFmpeg/ffprobe must be installed separately and available on PATH.
+# Optional: requirements-vision.txt, requirements-algorithms.txt, requirements-test.txt.

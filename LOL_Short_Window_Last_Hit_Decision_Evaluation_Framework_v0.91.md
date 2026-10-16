@@ -1,4 +1,4 @@
-# LoL Parameterized Last-Hit Timing Decision Model
+# LOL Short-Window Last-Hit Decision Evaluation Framework
 ## Analyst v0.911 · Standalone Pre-release
 ### A player-centered probabilistic event algorithm over a finite window
 

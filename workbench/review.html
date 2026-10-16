@@ -1,0 +1,85 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8">
+<title>LOL 短时补兵决策评估工作台</title>
+<style>
+body{font:15px system-ui;margin:20px;background:#141b25;color:#ebf0f6}button,input,select,textarea{font:inherit;padding:7px;margin:3px;background:#253246;color:inherit;border:1px solid #748096;border-radius:4px}button{cursor:pointer}button:hover{background:#3a506c}textarea{width:96%;min-height:100px}canvas{width:100%;height:auto;cursor:crosshair;background:#000}main{display:grid;grid-template-columns:minmax(450px,1fr) 350px;gap:18px}.panel{background:#1d2939;padding:14px;border-radius:8px}small{color:#bfcee0}#status{white-space:pre-wrap}label{display:block;margin:5px 0}input[type=range]{width:55%}a{color:#90ceff}.warning{color:#ffd486}#action input{width:92%}@media(max-width:950px){main{display:block}}
+</style>
+<h1>LOL 短时补兵决策评估工作台</h1>
+<p>按完整血条中心记录坐标。蓝红颜色表示阵营；小兵需分别编号。未知内容留空，保存后重新导出表格。</p>
+<main><section class="panel">
+<button id="prev">上一帧</button><input id="slider" type="range" min="0" value="0"><button id="next">下一帧</button><span id="time"></span>
+<canvas id="canvas"></canvas>
+<p><label>点击模式 <select id="mode"><option value="center">当前单位血条中心</option><option value="box">拖框选完整血条（取中心）</option><option value="origin">固定地图纹理原点</option></select></label></p>
+<p class="warning">橙色框仅为颜色填充候选，不能代表完整血条，也没有单位身份。请依据画面手动确认；不使用脚下模型中心。</p>
+<small>左右方向键切帧（输入框内除外）。地图原点必须在各帧追踪同一纹理点，才能扣除镜头平移；同帧单位间距不需要原点。</small>
+<label>距离小兵 ID（逗号分隔，数量不限；设定沿用至后续帧，直到重新选择）<input id="distanceUnits" style="width:95%" placeholder="炮车线或兵波重叠时请显式选择"></label>
+<button id="selectAllMinions">选取名册内当前全部未确认阵亡的小兵</button><button id="selectNoMinions">只测英雄之间</button>
+<details><summary>逐项选择距离对象</summary><div id="distanceRoster"></div><button id="useChecked">应用勾选对象</button></details>
+<details><summary>单位列表与新增单位</summary><p>换波、炮车、召唤物使用新 ID，不能复用已经阵亡单位的 ID。</p>
+<p>颜色检测不识别炮车或兵种；请人工选择，或导入 AI 已区分兵种的名册。编号由程序生成，不代表自动跟踪到同一只小兵。</p>
+<input id="newid" placeholder="留空自动生成永久唯一 ID"><select id="side"><option>blue</option><option>red</option></select>
+<select id="kind"><option value="melee">近战 melee</option><option value="caster">远程 caster</option><option value="siege">炮车 siege</option><option value="super">超级兵 super</option><option value="minion">兵种待确认 minion</option><option value="summon">召唤物 summon</option></select>
+<input id="wave" type="number" value="2" min="0"><button id="add">加入单位</button></details>
+</section><section class="panel">
+<label>当前单位 <select id="unit"></select></label><p id="coord"></p><p id="distance"></p>
+<div id="action"><label>动作（未知留空）<input id="act" placeholder="attack / Q / move / wait / death ..."></label>
+<label>攻击目标 <select id="target"></select></label><label>攻击相位<input id="phase" placeholder="windup / committed / impact / recovery"></label>
+<label>存活状态 <select id="alive"><option value="">未知</option><option value="true">存活</option><option value="false">确认阵亡（此帧起停止记录该单位）</option></select></label>
+<label>生命值或血量比例（口径写备注）<input id="hp" type="number" step="any"></label>
+<label>动作开始：视频秒数<input id="start" type="number" step="any"></label><label>动作结束：视频秒数<input id="end" type="number" step="any"></label>
+<label>备注<input id="notes"></label></div>
+<button id="apply">记录此帧动作</button><button id="clear">清除此单位坐标</button>
+<p><button id="save">保存</button><button id="export">保存并导出评估包</button></p>
+<p id="downloads"></p><p id="status" role="status"></p>
+<details><summary>导入人工或 AI 标注 JSON</summary><p>格式见 docs/workflow.md。导入后覆盖当前标注；先保存备份。</p><input type="file" id="import" accept=".json"></details>
+</section></main>
+<section class="panel"><h2>评估预输入</h2>
+<label>距离标尺（像素=游戏单位，空白保留像素）：<input id="scale" placeholder="189=350"></label>
+<p>游戏距离为用户标尺下的近似量。镜头缩放、透视和不同单位血条高度会造成误差；血条中心距离不等于游戏碰撞边缘距离。</p>
+<details><summary>双方英雄版本、等级、符文、装备与有效参数（必需）</summary>
+<p>可运行 fetch-data 查询官方基础数据，再粘贴到此处。必须核验实际攻速、射程、移速、技能等级/消耗/CD、被动与符文状态；只有基础数据不足以评分。</p>
+<textarea id="heroes" spellcheck="false"></textarea><p>每方需有 champion、patch、runes、items、effective_state 和 verified_effective_state。后者仅在人工核验后设为 true。</p></details>
+<details><summary>一般对线策略参考（可选）</summary><textarea id="strategy" placeholder="纯文字策略、适用条件、来源链接、版本和访问日期"></textarea></details>
+</section>
+<script>
+'use strict';
+const $=id=>document.getElementById(id), token=new URLSearchParams(location.search).get('token');
+const url=path=>path+'?token='+encodeURIComponent(token);
+let p,a,proposals,index=0,img=new Image(),drag=null,dirty=false,activeId;
+const canvas=$('canvas'),ctx=canvas.getContext('2d');
+function frame(){return p.frames[index]}
+function ann(){return a.frames[frame().id]??=( {units:{}} )}
+function current(){return ann().units[activeId||$('unit').value]??={}}
+const minionKinds=new Set(['melee','caster','siege','super','minion']);
+function liveMinions(){let dead=new Set();for(let f of p.frames.slice(0,index+1)){for(let [id,d] of Object.entries(a.frames[f.id]?.units||{})){if(d.alive===false||d.action==='death')dead.add(id)}}return p.units.filter(u=>minionKinds.has(u.kind)&&!dead.has(u.id)&&(u.first_seen_s==null||u.first_seen_s<=frame().source_time_s))}
+function effectiveSelection(){let selected;for(let f of p.frames.slice(0,index+1)){if(a.frames[f.id]?.distance_minions!==undefined)selected=a.frames[f.id].distance_minions}return selected}
+function distanceOptions(){let selected=new Set(effectiveSelection()??liveMinions().map(u=>u.id));$('distanceRoster').replaceChildren();for(let u of liveMinions()){let label=document.createElement('label'),check=document.createElement('input');check.type='checkbox';check.value=u.id;check.checked=selected.has(u.id);label.append(check,document.createTextNode(`${u.side} · ${u.kind} · ${u.id}`));$('distanceRoster').append(label)}}
+function status(s){$('status').textContent=s}
+async function api(path,body){let response=await fetch(url(path),body?{method:'POST',headers:{'Content-Type':'application/json','X-Session-Token':token},body:JSON.stringify(body)}:{});let data=await response.json();if(!response.ok)throw Error(data.error);return data}
+function options(){let selected=$('unit').value;$('unit').replaceChildren();$('target').replaceChildren(new Option('未知 / 无目标',''));for(let u of p.units){$('unit').add(new Option(`${u.side} · ${u.kind} · ${u.id}`,u.id));$('target').add(new Option(u.id,u.id))}if(p.units.some(u=>u.id===selected))$('unit').value=selected}
+function loadFields(){activeId=$('unit').value;let d=current();for(let [id,key] of [['act','action'],['target','target'],['phase','phase'],['hp','hp'],['start','action_start_s'],['end','action_end_s'],['notes','notes']])$(id).value=d[key]??'';$('alive').value=d.alive==null?'':String(d.alive);let selection=effectiveSelection();$('distanceUnits').value=selection===undefined?'':selection.length?selection.join(','):'[]';distanceOptions();draw()}
+function apply(){let d=current();for(let [id,key] of [['act','action'],['target','target'],['phase','phase'],['notes','notes']])d[key]=$(id).value;for(let [id,key] of [['hp','hp'],['start','action_start_s'],['end','action_end_s']])d[key]=$(id).value===''?null:Number($(id).value);d.alive=$('alive').value===''?null:$('alive').value==='true';let text=$('distanceUnits').value.trim();if(text)ann().distance_minions=text==='[]'?[]:text.split(',').map(x=>x.trim()).filter(Boolean);else delete ann().distance_minions;dirty=true}
+function show(n){if(p&&img.src)apply();index=Math.max(0,Math.min(p.frames.length-1,n));$('slider').value=index;$('time').textContent=`${index+1}/${p.frames.length} · 视频 ${frame().source_time_s.toFixed(3)} s`;img.onload=()=>{canvas.width=img.width;canvas.height=img.height;loadFields()};img.src=url('/'+frame().image)}
+function draw(){if(!img.complete||!img.naturalWidth)return;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0);ctx.lineWidth=2;ctx.font='16px system-ui';
+ for(let v of proposals[frame().id]||[]){let [x,y,w,h]=v.box;ctx.strokeStyle='#ffbd65';ctx.setLineDash([5,4]);ctx.strokeRect(x,y,w,h)}ctx.setLineDash([]);
+ for(let u of p.units){let d=ann().units[u.id];if(!d?.center)continue;let [x,y]=d.center;ctx.strokeStyle=u.side==='blue'?'#62c2ff':'#ff6a7a';ctx.fillStyle=ctx.strokeStyle;ctx.beginPath();ctx.arc(x,y,u.id===$('unit').value?10:5,0,7);ctx.stroke();ctx.fillText(u.id,x+10,y-10)}
+ if(ann().origin){let [x,y]=ann().origin;ctx.strokeStyle='#ffef86';ctx.beginPath();ctx.moveTo(x-12,y);ctx.lineTo(x+12,y);ctx.moveTo(x,y-12);ctx.lineTo(x,y+12);ctx.stroke()}
+ let d=current();$('coord').textContent=d.center?`血条中心 (${d.center.map(v=>v.toFixed(1)).join(', ')}) px`:'血条中心：未知';let u=p.units.find(v=>v.id===$('unit').value),enemy=p.units.find(v=>v.kind==='hero'&&v.side!==u.side),ec=ann().units[enemy?.id]?.center;
+ $('distance').textContent=d.center&&ec?`与敌方英雄距离：${Math.hypot(d.center[0]-ec[0],d.center[1]-ec[1]).toFixed(1)} px`:'与敌方英雄距离：待标注双方中心';}
+function point(e){let b=canvas.getBoundingClientRect();return [(e.clientX-b.left)*canvas.width/b.width,(e.clientY-b.top)*canvas.height/b.height]}
+canvas.onpointerdown=e=>{drag=point(e);canvas.setPointerCapture(e.pointerId)};
+canvas.onpointerup=e=>{if(!drag)return;let end=point(e);if($('mode').value==='origin'){ann().origin=end}else{let d=current();d.center=$('mode').value==='box'?[(drag[0]+end[0])/2,(drag[1]+end[1])/2]:end;d.coordinate_method=$('mode').value==='box'?'manual_full_bar_box_center':'manual_health_bar_center';d.reviewed=true}dirty=true;drag=null;draw()};
+$('apply').onclick=()=>{apply();status('动作已记录，尚需保存。')};$('clear').onclick=()=>{current().center=null;current().reviewed=false;dirty=true;draw()};
+$('unit').onchange=()=>{apply();loadFields()};$('prev').onclick=()=>show(index-1);$('next').onclick=()=>show(index+1);$('slider').oninput=e=>show(Number(e.target.value));
+document.onkeydown=e=>{if(['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName))return;if(e.key==='ArrowRight')show(index+1);if(e.key==='ArrowLeft')show(index-1)};
+$('add').onclick=()=>{let side=$('side').value,kind=$('kind').value,wave=Number($('wave').value),id=$('newid').value.trim();if(!Number.isInteger(wave)||wave<0)return status('波次必须是非负整数；不确定时使用 0 并在备注中说明');if(!id){let n=1;while(p.units.some(u=>u.id===`${side}_${kind}_w${wave}_${n}`))n++;id=`${side}_${kind}_w${wave}_${n}`}if(!/^[A-Za-z0-9_-]+$/.test(id)||p.units.some(u=>u.id===id))return status('ID 必须唯一；阵亡后也不复用');apply();p.units.push({id,side,kind,wave,first_seen_s:frame().source_time_s});options();$('unit').value=id;loadFields();dirty=true;status(`已加入 ${id}。请在距离对象中显式选取；未知兵种可先用 minion。`)};
+$('selectAllMinions').onclick=()=>{$('distanceUnits').value=liveMinions().map(u=>u.id).join(',')||'[]';apply();distanceOptions()};
+$('selectNoMinions').onclick=()=>{$('distanceUnits').value='[]';apply();distanceOptions()};
+$('useChecked').onclick=()=>{$('distanceUnits').value=[...$('distanceRoster').querySelectorAll('input:checked')].map(x=>x.value).join(',')||'[]';apply();distanceOptions()};
+async function save(){apply();p.hero_data=JSON.parse($('heroes').value);p.strategy_text=$('strategy').value;let text=$('scale').value.trim();if(text){let values=text.split('=').map(Number);if(values.length!==2||!values.every(x=>Number.isFinite(x)&&x>0))throw Error('标尺格式：189=350');p.calibration={pixels:values[0],game_units:values[1]}}else p.calibration=null;await api('/api/save',{project:p,annotations:a});dirty=false;status('已保存。')}
+$('save').onclick=()=>save().catch(e=>status(e.message));
+$('export').onclick=async()=>{try{await save();let coverage=await api('/api/export',{});status(JSON.stringify(coverage,null,2));$('downloads').replaceChildren();for(let [path,label] of [['/tables/events.csv','事件表 CSV'],['/tables/distances.csv','距离表 CSV'],['/assessment_bundle.zip','独立评估包 ZIP']]){let link=document.createElement('a');link.href=url(path);link.textContent=label;link.download='';$('downloads').append(link,document.createTextNode(' · '))}}catch(e){status(e.message)}};
+$('import').onchange=async e=>{try{let v=JSON.parse(await e.target.files[0].text());if(v.schema_version!==1||!v.frames)throw Error('不是有效标注 JSON');a=v;dirty=true;loadFields();status('已载入标注。保存时将执行结构校验。')}catch(error){status(error.message)}};
+window.onbeforeunload=e=>{if(dirty){e.preventDefault();e.returnValue=''}};
+document.addEventListener('input',()=>{dirty=true});
+api('/api/state').then(s=>{p=s.project;a=s.annotations;proposals=s.proposals;$('slider').max=p.frames.length-1;options();$('heroes').value=JSON.stringify(p.hero_data,null,2);$('strategy').value=p.strategy_text||'';let c=p.calibration;$('scale').value=c?`${c.pixels}=${c.game_units}`:'';show(0);dirty=false}).catch(e=>status(e.message));
+</script></html>

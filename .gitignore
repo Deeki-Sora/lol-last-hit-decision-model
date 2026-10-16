@@ -6,3 +6,6 @@ __pycache__/
 private_auth/
 *.log
 .DS_Store
+runs/
+input_videos/*
+!input_videos/.gitkeep

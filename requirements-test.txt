@@ -1,0 +1,2 @@
+# Optional browser UI regression test, not required to run the workbench.
+playwright==1.64.0

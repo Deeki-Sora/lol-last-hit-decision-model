@@ -3,21 +3,21 @@
     {
       "id": "A1",
       "original_filename": "16-20_GZ100-601002661038_01.webm",
-      "repository_path": "case_data/yasuo_vs_veigar/media/originals/A1.webm",
+      "repository_path": "example/yasuo_vs_veigar/media/originals/A1.webm",
       "bytes": 29938491,
       "sha256": "71538fb8ed593fbfcc9489d3baed05967007285602bca48dfa7abfe725dc2b4a"
     },
     {
       "id": "A2",
       "original_filename": "16-20_GZ100-601002661038_02.webm",
-      "repository_path": "case_data/yasuo_vs_veigar/media/originals/A2.webm",
+      "repository_path": "example/yasuo_vs_veigar/media/originals/A2.webm",
       "bytes": 25322975,
       "sha256": "42e75f645c86dca9aa62eb0b042d231ba2ea961ba403e231eebf1f6f22dbfdc1"
     },
     {
       "id": "B",
       "original_filename": "[SHANA]Yasuo-Mid-vs-Veigar-NA-Patch-26-06_001_1080p.mp4",
-      "repository_path": "case_data/yasuo_vs_veigar/media/originals/B.mp4",
+      "repository_path": "example/yasuo_vs_veigar/media/originals/B.mp4",
       "bytes": 36361474,
       "sha256": "afb723e13371feaa4ecc2fb632a5c7890b7ce3eda625502a306d55283b171388"
     }
