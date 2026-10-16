@@ -313,7 +313,13 @@ def export_assessment(directory, bundle=True):
     p=read_json(directory/'project.json');dest=directory/'assessment';dest.mkdir(exist_ok=True)
     documents=read_json(ROOT/'framework_documents.json')
     for name in documents.values():shutil.copy2(ROOT/name,dest/name)
-    write_json(dest/'hero_data.json',p.get('hero_data',{}))
+    from .loadouts import configuration_at
+    hero_data = configuration_at(directory, p, p['start_s'])
+    write_json(dest/'hero_data.json',hero_data)
+    if p.get('configuration'):
+        write_json(dest/'configuration.json', p['configuration'])
+        write_json(dest/'hero_states.json', [dict(source_time_s=s['source_time_s'],
+            sides=configuration_at(directory,p,s['source_time_s'])) for s in p['configuration']['snapshots']])
     (dest/'strategy_reference.md').write_text(p.get('strategy_text',''),encoding='utf-8')
     (dest/'evaluation_request.md').write_text((ROOT/'docs/evaluation_request_template.md').read_text(encoding='utf-8'),encoding='utf-8')
     guide=ROOT/'docs/short_horizon.md'
@@ -322,15 +328,15 @@ def export_assessment(directory, bundle=True):
     if adapter.is_file():
         (directory/'templates').mkdir(exist_ok=True)
         shutil.copy2(adapter,directory/'templates'/adapter.name)
-    ready=all(p.get('hero_data',{}).get(side,{}).get('verified_effective_state') is True and p.get('hero_data',{}).get(side,{}).get('effective_state') for side in ('blue','red'))
+    ready=all(hero_data.get(side,{}).get('verified_effective_state') is True and hero_data.get(side,{}).get('effective_state') for side in ('blue','red'))
     write_json(dest/'manifest.json',dict(schema_version=1,hero_parameters_declared_verified=bool(ready),source_name=p['source_name'],source_sha256=p['source_sha256'],
         start_s=p['start_s'],end_s=p['end_s'],step_s=p['step_s'],calibration=p.get('calibration'),coverage=summary,
-        files={f.relative_to(directory).as_posix():sha256(f) for folder in ['frames','tables','game_analysis','mechanics','templates'] for f in (directory/folder).rglob('*') if f.is_file()},
+        files={f.relative_to(directory).as_posix():sha256(f) for folder in ['frames','tables','game_analysis','mechanics','templates','catalogs'] for f in (directory/folder).rglob('*') if f.is_file()},
         framework_sha256={name:sha256(dest/name) for name in documents.values()}))
     if bundle:
         archive=directory/'assessment_bundle.zip'
         with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED,compresslevel=1) as output:
-            for name in ['project.json','annotations.json','frames','tables','assessment','game_analysis','mechanics','templates']:
+            for name in ['project.json','annotations.json','frames','tables','assessment','game_analysis','mechanics','templates','catalogs']:
                 path=directory/name
                 for f in ([path] if path.is_file() else sorted(path.rglob('*'))):
                     if f.is_file():output.write(f,f.relative_to(directory).as_posix())

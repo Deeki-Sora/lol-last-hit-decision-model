@@ -4,6 +4,7 @@
 body{font:15px system-ui;margin:20px;background:#141b25;color:#ebf0f6}button,input,select,textarea{font:inherit;padding:7px;margin:3px;background:#253246;color:inherit;border:1px solid #748096;border-radius:4px}button{cursor:pointer}button:hover{background:#3a506c}textarea{width:96%;min-height:100px}canvas{width:100%;height:auto;cursor:crosshair;background:#000}main{display:grid;grid-template-columns:minmax(450px,1fr) 350px;gap:18px}.panel{background:#1d2939;padding:14px;border-radius:8px}small{color:#bfcee0}#status{white-space:pre-wrap}label{display:block;margin:5px 0}input[type=range]{width:55%}a{color:#90ceff}.warning{color:#ffd486}#action input{width:92%}@media(max-width:950px){main{display:block}}
 </style>
 <h1>LOL 短时补兵决策评估工作台</h1>
+<label>Language / 语言 <select id="uiLanguage"><option value="zh">中文</option><option value="en">English</option></select></label>
 <p>按完整血条中心记录坐标。蓝红颜色表示阵营；小兵需分别编号。未知内容留空，保存后重新导出表格。</p>
 <main><section class="panel">
 <button id="prev">上一帧</button><input id="slider" type="range" min="0" value="0"><button id="next">下一帧</button><span id="time"></span>
@@ -33,9 +34,10 @@ body{font:15px system-ui;margin:20px;background:#141b25;color:#ebf0f6}button,inp
 <details><summary>导入人工或 AI 标注 JSON</summary><p>格式见 docs/workflow.md。导入后覆盖当前标注；先保存备份。</p><input type="file" id="import" accept=".json"></details>
 </section></main>
 <section class="panel"><h2>评估预输入</h2>
+<div id="loadoutPanel"></div>
 <label>距离标尺（像素=游戏单位，空白保留像素）：<input id="scale" placeholder="189=350"></label>
 <p>游戏距离为用户标尺下的近似量。镜头缩放、透视和不同单位血条高度会造成误差；血条中心距离不等于游戏碰撞边缘距离。</p>
-<details><summary>双方英雄版本、等级、符文、装备与有效参数（必需）</summary>
+<details><summary>高级：英雄有效参数 JSON / 旧版数据接口</summary>
 <p>可运行 fetch-data 查询官方基础数据，再粘贴到此处。必须核验实际攻速、射程、移速、技能等级/消耗/CD、被动与符文状态；只有基础数据不足以评分。</p>
 <textarea id="heroes" spellcheck="false"></textarea><p>每方需有 champion、patch、runes、items、effective_state 和 verified_effective_state。后者仅在人工核验后设为 true。</p></details>
 <details><summary>一般对线策略参考（可选）</summary><textarea id="strategy" placeholder="纯文字策略、适用条件、来源链接、版本和访问日期"></textarea></details>
@@ -53,6 +55,7 @@ body{font:15px system-ui;margin:20px;background:#141b25;color:#ebf0f6}button,inp
 <textarea id="gameTask" style="min-height:220px" spellcheck="false" placeholder="生成草稿后，人工或 AI 填写并核验。没有内置任何英雄的参数。"></textarea>
 <p><button id="gameRun">运行已核验任务</button><a href="https://github.com/Deeki-Sora/lol-last-hit-decision-model/blob/main/docs/short_horizon.md" target="_blank" rel="noopener">机制范围与任务格式</a></p>
 <p id="gameStatus" role="status"></p><div id="gameResults"></div></section>
+<script src="/assets/i18n.js"></script>
 <script>
 'use strict';
 const $=id=>document.getElementById(id), token=new URLSearchParams(location.search).get('token');
@@ -67,10 +70,10 @@ const minionKinds=new Set(['melee','caster','siege','super','minion']);
 function liveMinions(){let dead=new Set();for(let f of p.frames.slice(0,index+1)){for(let [id,d] of Object.entries(a.frames[f.id]?.units||{})){if(d.alive===false||d.action==='death')dead.add(id)}}return p.units.filter(u=>minionKinds.has(u.kind)&&!dead.has(u.id)&&(u.first_seen_s==null||u.first_seen_s<=frame().source_time_s))}
 function effectiveSelection(){let selected;for(let f of p.frames.slice(0,index+1)){if(a.frames[f.id]?.distance_minions!==undefined)selected=a.frames[f.id].distance_minions}return selected}
 function distanceOptions(){let selected=new Set(effectiveSelection()??liveMinions().map(u=>u.id));$('distanceRoster').replaceChildren();for(let u of liveMinions()){let label=document.createElement('label'),check=document.createElement('input');check.type='checkbox';check.value=u.id;check.checked=selected.has(u.id);label.append(check,document.createTextNode(`${u.side} · ${u.kind} · ${u.id}`));$('distanceRoster').append(label)}}
-function status(s){$('status').textContent=s}
+function status(s){$('status').textContent=window.translateText(s)}
 async function api(path,body){let response=await fetch(url(path),body?{method:'POST',headers:{'Content-Type':'application/json','X-Session-Token':token},body:JSON.stringify(body)}:{});let data=await response.json();if(!response.ok)throw Error(data.error);return data}
 function options(){let selected=$('unit').value;$('unit').replaceChildren();$('target').replaceChildren(new Option('未知 / 无目标',''));for(let u of p.units){$('unit').add(new Option(`${u.side} · ${u.kind} · ${u.id}`,u.id));$('target').add(new Option(u.id,u.id))}if(p.units.some(u=>u.id===selected))$('unit').value=selected}
-function loadFields(){activeId=$('unit').value;let d=current();for(let [id,key] of [['act','action'],['target','target'],['phase','phase'],['hp','hp'],['start','action_start_s'],['end','action_end_s'],['notes','notes']])$(id).value=d[key]??'';$('alive').value=d.alive==null?'':String(d.alive);let selection=effectiveSelection();$('distanceUnits').value=selection===undefined?'':selection.length?selection.join(','):'[]';distanceOptions();draw()}
+function loadFields(){activeId=$('unit').value;let d=current();for(let [id,key] of [['act','action'],['target','target'],['phase','phase'],['hp','hp'],['start','action_start_s'],['end','action_end_s'],['notes','notes']])$(id).value=d[key]??'';$('alive').value=d.alive==null?'':String(d.alive);let selection=effectiveSelection();$('distanceUnits').value=selection===undefined?'':selection.length?selection.join(','):'[]';distanceOptions();draw();window.loadoutFrameChanged?.()}
 function apply(){let d=current();for(let [id,key] of [['act','action'],['target','target'],['phase','phase'],['notes','notes']])d[key]=$(id).value;for(let [id,key] of [['hp','hp'],['start','action_start_s'],['end','action_end_s']])d[key]=$(id).value===''?null:Number($(id).value);d.alive=$('alive').value===''?null:$('alive').value==='true';let text=$('distanceUnits').value.trim();if(text)ann().distance_minions=text==='[]'?[]:text.split(',').map(x=>x.trim()).filter(Boolean);else delete ann().distance_minions;dirty=true}
 function show(n){if(p&&img.src)apply();index=Math.max(0,Math.min(p.frames.length-1,n));$('slider').value=index;$('time').textContent=`${index+1}/${p.frames.length} · 视频 ${frame().source_time_s.toFixed(3)} s`;img.onload=()=>{canvas.width=img.width;canvas.height=img.height;loadFields()};img.src=url('/'+frame().image)}
 function draw(){if(!img.complete||!img.naturalWidth)return;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0);ctx.lineWidth=2;ctx.font='16px system-ui';
@@ -102,5 +105,5 @@ $('mechanicsCsv').onchange=async e=>{try{estimatedModels=await api('/api/estimat
 $('useModels').onclick=()=>{try{if(!estimatedModels)throw Error('先导入观察 CSV');let task=JSON.parse($('gameTask').value);task.stochastic??={samples:16,seed:0,models:[],effects:[]};let ids=new Set(estimatedModels.models.map(m=>m.id));task.stochastic.models=[...(task.stochastic.models||[]).filter(m=>!ids.has(m.id)),...estimatedModels.models];$('gameTask').value=JSON.stringify(task,null,2);$('gameStatus').textContent='已写入观察统计。context_verified 保持 false，需核验距离、移动、机制条件及反事实适用性；触发概率不会替代确定规则。'}catch(e){$('gameStatus').textContent=e.message}};
 $('gameDraft').onclick=async()=>{try{await save();let task=await api('/api/game-draft',{frame_id:frame().id});$('gameTask').value=JSON.stringify(task,null,2);$('gameStatus').textContent=`任务介入时刻：视频 ${task.entry_time_s.toFixed(3)} s。草稿未核验，必须补齐参数才能运行。`}catch(e){$('gameStatus').textContent=e.message}};
 $('gameRun').onclick=async()=>{if(!$('gameEnabled').checked){$('gameStatus').textContent='可选推演未启用；其他计算不受影响。';return}try{let task=JSON.parse($('gameTask').value);task.enabled=true;task.backend=$('gameBackend').value;let data=await api('/api/game-run',{task});$('gameStatus').textContent=`有效窗口 ${data.result.effective_horizon_s.toFixed(3)} s；结果已保存 game_analysis/${data.folder}/。`;$('gameResults').replaceChildren();let pre=document.createElement('pre');pre.style.whiteSpace='pre-wrap';pre.textContent=JSON.stringify({replan_reasons:data.result.replan_reasons,branches:data.result.branches.map(b=>({blue_policy:b.blue_policy,red_policy:b.red_policy,legal:b.legal,metrics:b.metrics})),solver:data.result.solver},null,2);let link=document.createElement('a');link.href=url(`/game_analysis/${data.folder}/result.json`);link.textContent='下载完整推演结果 JSON';link.download='result.json';$('gameResults').append(link,pre)}catch(e){$('gameStatus').textContent=e.message}};
-api('/api/state').then(s=>{p=s.project;a=s.annotations;proposals=s.proposals;$('slider').max=p.frames.length-1;options();$('heroes').value=JSON.stringify(p.hero_data,null,2);$('strategy').value=p.strategy_text||'';let c=p.calibration;$('scale').value=c?`${c.pixels}=${c.game_units}`:'';show(0);dirty=false}).catch(e=>status(e.message));
-</script></html>
+window.workbenchReady=api('/api/state').then(s=>{p=s.project;a=s.annotations;proposals=s.proposals;$('slider').max=p.frames.length-1;options();$('heroes').value=JSON.stringify(p.hero_data,null,2);$('strategy').value=p.strategy_text||'';let c=p.calibration;$('scale').value=c?`${c.pixels}=${c.game_units}`:'';show(0);dirty=false}).catch(e=>status(e.message));
+</script><script src="/assets/loadouts.js"></script></html>

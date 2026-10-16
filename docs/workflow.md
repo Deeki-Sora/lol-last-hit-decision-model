@@ -84,7 +84,9 @@ python main.py import-table runs/session/clip_01 edited_events.csv
 python main.py fetch-data --version 16.6.1 --blue Yasuo --red Veigar --output hero_data.json
 ```
 
-命令仅下载官方基础数据，不自动计算装备/符文/技能等级后的有效参数；填好后将 JSON 内容粘贴页面的英雄资料区。每方应有 champion、patch、runes、items、effective_state（例如 level、attack_speed、attack_range、move_speed、spell_ranks、cooldowns、mana_costs、passive_state），并人工确认 verified_effective_state=true。评估资料包会报告是否声明核验，但不会以勾选代替真实证据。
+fetch-data 是独立的静态数据下载入口。工作台的常规入口是 [可视化配置选择](loadout_selection.md)：加载补丁，选择双方英雄、符文、属性碎片，按视频时间记录等级、加点与装备。选择自动转换为 ID，存入 project.json 的 configuration；无需复制 JSON。外部选择器可提供名称或 ID，数值仍从本地锁定版本的资料读取。
+
+导出包的 hero_data.json 对应片段开始时可取得的状态；hero_states.json 保存各时点资料，configuration.json 保存固定配置和状态快照。选择结果及基础资料均不等于实战有效属性。需要实际 attack_speed、attack_range、move_speed、技能修正和 passive_state 等时，由人工/AI 适配并核验；不会因选择完成而将 verified_effective_state 改为 true。
 
 某些 Python 安装未附带完整根证书，可运行 `python -m pip install -r requirements-data.txt` 使用公共 CA 包；程序始终验证 HTTPS 证书。需要专用证书的环境可通过 SSL_CERT_FILE 指定可信 CA。离线使用时直接填写已核验的英雄 JSON。
 

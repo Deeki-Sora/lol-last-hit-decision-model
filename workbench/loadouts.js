@@ -1,0 +1,126 @@
+'use strict';
+// IDs cross the API; localized names and artwork only assist selection.
+(()=>{
+ const L=(zh,en)=>window.uiLang==='en'?en:zh, clone=v=>JSON.parse(JSON.stringify(v));
+ let catalog=null, config=null, fixedEditing=false, loadedStateTime=null, aramPreview=null;
+ const detailsCache=new Map();let popup=null, bridge=null;
+ function el(tag,text,attrs={}){let node=document.createElement(tag);if(text!=null)node.textContent=text;Object.assign(node,attrs);return node}
+ function label(text,node){let out=el('label',text+' ');out.append(node);return out}
+ function button(text,fn,id){let b=el('button',text,id?{id}:{});b.onclick=()=>Promise.resolve().then(fn).catch(error=>message(error.message));return b}
+ function select(id,choices,value){let node=el('select',null,{id});for(let [key,name] of choices)node.add(new Option(name,key??''));node.value=value??'';return node}
+ function name(data){return data?.names?.[window.uiLang==='en'?'en_US':'zh_CN']||data?.names?.en_US||''}
+ function plain(text){return String(text||'').replace(/<[^>]*>/g,' ')}
+ function optionLabel(data){return window.uiLang==='en'?`${data.names.en_US} [${data.id}]`:`${name(data)}${data.titles?.zh_CN?' ? '+data.titles.zh_CN:''} / ${data.names.en_US} [${data.id}]`}
+ function findId(value,collection){if(!value.trim())return null;let bracket=value.trim().match(/\[([^\]]+)\]$/);if(bracket&&collection[bracket[1]])return collection[bracket[1]].id;let lowered=value.trim().toLowerCase();let match=Object.values(collection).find(d=>[d.id,...Object.values(d.names),...Object.values(d.titles||{}),optionLabel(d)].some(v=>String(v).toLowerCase()===lowered));if(!match)throw Error(L('请选择列表中的名称或 ID：','Select a listed name or ID: ')+value);return match.id}
+ function message(text){document.getElementById('loadoutStatus').textContent=text}
+ function baseState(){return {level:null,spell_ranks:{Q:null,W:null,E:null,R:null},inventory_known:false,items:[]}}
+ function emptyPage(){return {primary_path:null,secondary_path:null,primary:[null,null,null,null],secondary:[null,null],shards:[null,null,null]}}
+ function atTime(time){let past=(config?.snapshots||[]).filter(s=>s.source_time_s<=time);return past.sort((a,b)=>b.source_time_s-a.source_time_s)[0]||null}
+ function datalist(id,data){let list=el('datalist',null,{id});for(let d of Object.values(data))list.append(el('option',null,{value:optionLabel(d)}));return list}
+ function symbol(data){let img=el('img',null,{width:28,height:28,alt:name(data)});if(data?.image){img.src=data.image;img.loading='lazy';img.onerror=()=>{img.hidden=true}}else img.hidden=true;return img}
+ function readSideFixed(side){let old=config?.match_setup.sides[side]||{},page=clone(old.rune_page||emptyPage());
+  let hero=document.getElementById(side+'Champion');
+  let champion=hero?findId(hero.value,catalog.champions):old.champion;
+  for(let [field,count] of [['primary',4],['secondary',2],['shards',3]]){for(let i=0;i<count;i++){let input=document.getElementById(`${side}_${field}${i}`);if(input)page[field][i]=input.value?Number(input.value):null}}
+  for(let field of ['primary_path','secondary_path']){let input=document.getElementById(`${side}_${field}`);if(input)page[field]=input.value?Number(input.value):null}
+  return {champion,rune_page:page};
+ }
+ function readState(side){let state=baseState(),level=document.getElementById(side+'Level');state.level=level?.value?Number(level.value):null;
+  for(let key of ['Q','W','E','R']){let value=document.getElementById(side+'Rank'+key).value;state.spell_ranks[key]=value===''?null:Number(value)}
+  state.inventory_known=document.getElementById(side+'InventoryKnown').checked;
+  for(let slot=0;slot<7;slot++){let id=findId(document.getElementById(`${side}Item${slot}`).value,catalog.items);if(id)state.items.push({slot,id:String(id),quantity:Number(document.getElementById(`${side}Quantity${slot}`).value)})}
+  return state;
+ }
+ function choices(ids,collection){return [[null,L('未知 / 未选择','Unknown / unselected')],...ids.map(id=>[id,name(collection[id])+' ['+id+']'])]}
+ function renderRunes(side,selected){let root=document.getElementById(side+'Runes');root.replaceChildren();let page=selected.rune_page;
+  let primary=select(side+'_primary_path',[[null,L('主系：未知','Primary: unknown')],...catalog.rune_paths.map(path=>[path.id,name(path)])],page.primary_path);
+  let secondary=select(side+'_secondary_path',[[null,L('副系：未知','Secondary: unknown')],...catalog.rune_paths.filter(path=>path.id!==page.primary_path).map(path=>[path.id,name(path)])],page.secondary_path);
+  primary.disabled=secondary.disabled=!fixedEditing;
+  primary.onchange=()=>{let current=readSideFixed(side);current.rune_page.primary=[null,null,null,null];if(current.rune_page.secondary_path===current.rune_page.primary_path){current.rune_page.secondary_path=null;current.rune_page.secondary=[null,null]}renderRunes(side,current)};
+  secondary.onchange=()=>{let current=readSideFixed(side);current.rune_page.secondary=[null,null];renderRunes(side,current)};
+  root.append(label(L('主系','Primary'),primary),label(L('副系','Secondary'),secondary));
+  let main=catalog.rune_paths.find(p=>p.id===page.primary_path),sub=catalog.rune_paths.find(p=>p.id===page.secondary_path);
+  for(let i=0;i<4;i++){let s=select(`${side}_primary${i}`,choices(main?.slots[i]||[],catalog.runes),page.primary[i]);s.disabled=!fixedEditing;let icon=symbol(catalog.runes[s.value]);s.onchange=()=>{icon.replaceWith(icon=symbol(catalog.runes[s.value]));previewRune(side,s.value)};root.append(label((i===0?L('基石','Keystone'):L('主系槽','Primary row')+' '+i),s),icon)}
+  for(let i=0;i<2;i++){let ids=(sub?.slots.slice(1)||[]).flat(),s=select(`${side}_secondary${i}`,choices(ids,catalog.runes),page.secondary[i]);s.disabled=!fixedEditing;s.onchange=()=>previewRune(side,s.value);root.append(label(L('副系符文','Secondary rune')+' '+(i+1),s))}
+  for(let i=0;i<3;i++){let s=select(`${side}_shards${i}`,choices(catalog.shard_slots[i]||[],catalog.shards),page.shards[i]);s.disabled=!fixedEditing;s.onchange=()=>previewRune(side,s.value,true);root.append(label(L('属性碎片','Stat shard')+' '+(i+1),s))}
+  root.append(el('p','',{id:side+'RuneDescription'}));
+ }
+ function previewRune(side,id,shard=false){let data=(shard?catalog.shards:catalog.runes)[id];document.getElementById(side+'RuneDescription').textContent=plain(data?.descriptions?.[window.uiLang==='en'?'en_US':'zh_CN']||'')}
+ function renderState(side,state){let root=document.getElementById(side+'State');root.replaceChildren();
+  root.append(label(L('当前等级','Current level'),select(side+'Level',[[null,L('未知','Unknown')],...Array.from({length:18},(_,i)=>[i+1,String(i+1)])],state.level)));
+  for(let key of ['Q','W','E','R'])root.append(label(key,select(side+'Rank'+key,[[null,L('未确认加点','Rank unknown')],...Array.from({length:7},(_,i)=>[i,String(i)])],state.spell_ranks?.[key])));
+  let known=el('input',null,{type:'checkbox',id:side+'InventoryKnown',checked:state.inventory_known===true});root.append(label(L('已确认此时完整背包（空槽表示没有装备）','Full inventory confirmed at this time (blank slots mean empty)'),known));
+  for(let slot=0;slot<7;slot++){let item=state.items?.find(i=>i.slot===slot),data=catalog.items[item?.id],row=el('div');let input=el('input',null,{id:`${side}Item${slot}`,value:data?optionLabel(data):'',placeholder:L('搜索中英文名称 / ID','Search Chinese / English / ID')});input.setAttribute('list',slot===6?'trinketChoices':'itemChoices');input.style.width='65%';
+   let quantity=el('input',null,{id:`${side}Quantity${slot}`,type:'number',min:'1',value:String(item?.quantity||1)});quantity.style.width='50px';quantity.title=L('本槽数量','Quantity in this slot');let icon=symbol(data);
+   input.onchange=()=>{try{let id=findId(input.value,catalog.items);icon.replaceWith(icon=symbol(catalog.items[id]));document.getElementById(side+'ItemDescription').textContent=plain(catalog.items[id]?.descriptions?.[window.uiLang==='en'?'en_US':'zh_CN']||'')}catch(e){message(e.message)}};
+   row.append(el('span',slot===6?L('饰品','Trinket'):L('装备','Item')+' '+(slot+1)),icon,input,quantity);root.append(row)
+  }
+  root.append(el('p','',{id:side+'ItemDescription'}));
+ }
+ async function showChampion(side){let id=readSideFixed(side).champion;if(!id)return;let key=catalog.version+'/'+id;
+  if(!detailsCache.has(key))detailsCache.set(key,await api('/api/champion-details',{version:catalog.version,champion:id}));
+  let detail=detailsCache.get(key),raw=detail.locales[window.uiLang==='en'?'en_US':'zh_CN']||detail.locales.en_US;
+  let block=document.getElementById(side+'ChampionInfo');block.replaceChildren(el('p',`${raw.name} — ${raw.title}`),el('p',L('一级基础属性：','Level-1 base stats: ')+`HP ${raw.stats.hp} · AD ${raw.stats.attackdamage} · AS ${raw.stats.attackspeed} · MS ${raw.stats.movespeed} · Range ${raw.stats.attackrange}`),el('p',plain(raw.passive.name+': '+raw.passive.description)));
+  for(let [i,spell] of raw.spells.entries())block.append(el('p',`${['Q','W','E','R'][i]} · ${spell.name} · ${L('射程 / 冷却 / 消耗（数据文件原值）','range / cooldown / cost (raw data values)')}: ${JSON.stringify(spell.range)} / ${JSON.stringify(spell.cooldown)} / ${JSON.stringify(spell.cost)}`));
+ }
+ function render(){let panel=document.getElementById('loadoutPanel');panel.replaceChildren(el('h3',L('英雄、符文与时点装备选择','Champion, rune and timed inventory selection')));
+  let top=el('div'),patch=el('input',null,{id:'patchVersion',value:config?.match_setup.patch||catalog?.version||'',placeholder:'26.6 / 16.6.1'});patch.disabled=!!config&&!fixedEditing;
+  top.append(label(L('录像版本','Recording patch'),patch),button(L('加载此版本目录','Load patch catalog'),loadCatalog,'loadCatalog'));panel.append(top,el('p',L('英雄和符文按对局固定；等级、加点、背包按视频时间保存。未知不自动补成默认选择。','Champions and runes are fixed per match; level, skill ranks and inventory are saved at source-video times. Unknowns stay unknown.')));
+  panel.append(el('p','',{id:'loadoutStatus',role:'status'}));
+  if(!catalog){panel.append(el('p',L('首次联网下载该补丁的数据，之后可使用缓存。','Download patch data once; cached data can be reused offline.')));return}
+  panel.append(el('p',L('锁定数据版本：','Pinned data version: ')+catalog.version));
+  if(catalog.warnings.length)panel.append(el('p',catalog.warnings.join('\n'),{className:'warning'}));
+  panel.append(datalist('championChoices',catalog.champions),datalist('itemChoices',Object.fromEntries(Object.entries(catalog.items).filter(([,i])=>i.maps?.['11']&&!i.tags.includes('Trinket')))),datalist('trinketChoices',Object.fromEntries(Object.entries(catalog.items).filter(([,i])=>i.maps?.['11']&&i.tags.includes('Trinket')))));
+  let sides=el('div');sides.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px';
+  for(let side of ['blue','red']){let selected=config?.match_setup.sides[side]||{champion:null,rune_page:emptyPage()},root=el('section');root.append(el('h3',side==='blue'?L('蓝方','Blue side'):L('红方','Red side')));let input=el('input',null,{id:side+'Champion',value:selected.champion?optionLabel(catalog.champions[selected.champion]):'',disabled:!fixedEditing,placeholder:L('英雄中英文名称 / ID','Champion Chinese / English name / ID')});input.setAttribute('list','championChoices');input.onchange=()=>showChampion(side).catch(e=>message(e.message));root.append(label(L('英雄','Champion'),input),el('div','',{id:side+'ChampionInfo'}));
+   let runes=el('details');runes.open=true;runes.append(el('summary',L('符文页与属性碎片','Rune page and stat shards')),el('div','',{id:side+'Runes'}));root.append(runes,el('h4',L('此时状态','State at this time')),el('div','',{id:side+'State'}));sides.append(root)
+  }
+  panel.append(sides);for(let side of ['blue','red']){renderRunes(side,config?.match_setup.sides[side]||{champion:null,rune_page:emptyPage()});renderState(side,atTime(frame().source_time_s)?.sides[side]||baseState());showChampion(side).catch(e=>message(e.message))}
+  let unlock=el('input',null,{type:'checkbox',id:'unlockFixed',checked:fixedEditing});unlock.onchange=()=>{if(catalog){captureFixed();}fixedEditing=unlock.checked;render()};panel.append(label(L('编辑 / 纠正对局固定配置','Edit / correct fixed match configuration'),unlock),button(L('保存并锁定英雄和符文','Save and lock champions/runes'),saveFixed,'saveFixed'));
+  panel.append(el('p','',{id:'snapshotTime'}),button(L('读取当前帧对应状态','Load state for current frame'),()=>loadStateForm(),'loadState'),button(L('将此状态记录于当前帧','Record this state at current frame'),recordSnapshot,'recordSnapshot'));
+  panel.append(el('p','',{id:'snapshotList'}));
+  let aram=el('details');aram.append(el('summary',L('候选：ARAMonly 符文 / 装备分享链接','Optional: ARAMonly rune / item share link')));
+  aram.append(el('a',L('打开 ARAMonly 选择器（可不选英雄）','Open ARAMonly (champion selection optional)'),{href:'https://www.aramonly.com/lol-runes-builder/',target:'_blank',rel:'noopener noreferrer'}));
+  aram.append(el('p',L('在网站选好后复制 Shareable URL 到此处。Download 导出 PNG 图片；工作台解析分享链接。网站英雄选择不会覆盖本地英雄。','Select on the website, then paste its Shareable URL here. Download exports a PNG; the workbench parses the share link. The website champion never replaces your local champion.')));
+  let aramSide=select('aramSide',[['blue',L('蓝方','Blue side')],['red',L('红方','Red side')]],'blue'),aramUrl=el('input',null,{id:'aramShareUrl',type:'url',placeholder:'https://www.aramonly.com/lol-runes-builder/?runes=...&items=...'});aramUrl.style.width='90%';
+  aram.append(label(L('导入到','Import into'),aramSide),aramUrl,button(L('解析并预览','Parse and preview'),async()=>{aramPreview=await api('/api/aramonly-preview',{url:aramUrl.value,version:catalog.version});document.getElementById('aramPreview').textContent=JSON.stringify(aramPreview,null,2);document.getElementById('applyAramRunes').disabled=!aramPreview.rune_page||aramPreview.unresolved_runes.length>0;document.getElementById('applyAramItems').disabled=!aramPreview.items_parameter_present||aramPreview.invalid_items.length>0},'previewAram'));
+  let aramRunes=button(L('将符文应用到此方固定配置','Apply runes to this side’s fixed configuration'),async()=>{if(!config||!p.configuration)throw Error(L('请先保存双方英雄配置。','Save the local champion configuration first.'));let next=clone(config);next.match_setup.sides[aramSide.value].rune_page=aramPreview.rune_page;await persist(next,true);fixedEditing=false;render();message(L('已导入符文，双方英雄保持原选择。','Runes imported; both local champion selections are preserved.'))},'applyAramRunes');aramRunes.disabled=true;
+  let aramItems=button(L('将装备填入此方状态表单（复核后记录）','Fill this side’s inventory form (review before recording)'),()=>{let state=readState(aramSide.value);state.items=[...aramPreview.items.map(({data,...item})=>item),...state.items.filter(i=>i.slot===6)];state.inventory_known=false;renderState(aramSide.value,state);message(L('装备已填入表单；核对数量、饰品和完整性后，在当前帧记录状态。','Items filled into the form. Verify quantities, trinket and completeness, then record at the current frame.'))},'applyAramItems');aramItems.disabled=true;
+  aram.append(aramRunes,aramItems,el('pre','',{id:'aramPreview'}));panel.append(aram);
+  let advanced=el('details');advanced.append(el('summary',L('外部选择器回传 / 配置导入导出','External selector return / configuration import-export')));
+  let external=el('input',null,{id:'externalSelectorUrl',type:'url',placeholder:'https://...'});external.style.width='65%';advanced.append(external,button(L('打开支持回传协议的网页','Open a compatible selector page'),openExternal,'openExternal'));
+  advanced.append(el('p',L('只有实现本仓库 postMessage 协议的网页能够自动回传。一般模拟器网页不会自动回传，也不接收本地服务令牌。','Only pages implementing the documented postMessage protocol can return selections automatically. Arbitrary simulator sites do not; the local session token is never sent.')));
+  advanced.append(button(L('导出选择配置','Export selections'),downloadConfig,'downloadConfig'));let file=el('input',null,{id:'importConfiguration',type:'file',accept:'.json'});file.onchange=async()=>{try{let candidate=JSON.parse(await file.files[0].text());await acceptConfiguration(candidate)}catch(e){message(e.message)}};advanced.append(label(L('导入选择器导出的配置文件','Import a selector configuration file'),file));advanced.append(el('pre','',{id:'loadoutPreview'}));panel.append(advanced);
+  loadedStateTime=frame().source_time_s;updateTimes();window.localizeUI();
+ }
+ function captureFixed(){if(!catalog)return;let sides={};for(let side of ['blue','red'])sides[side]=readSideFixed(side);config??={schema_version:1,snapshots:[],match_setup:{patch:catalog.version,sides:{}}};config.match_setup={patch:catalog.version,sides}}
+ async function loadCatalog(){let requested=document.getElementById('patchVersion').value.trim();message(L('正在读取指定版本目录……','Loading the requested patch catalog…'));let next=await api('/api/catalog',{version:requested});
+  if(config&&config.match_setup.patch!==next.version){if(!fixedEditing)throw Error(L('先勾选编辑固定配置。','Unlock the fixed setup first.'));if(!confirm(L('更改版本将清空此工作区的选择配置和状态快照，是否继续？','Changing patch clears this workspace selection configuration and snapshots. Continue?')))return;config=null}
+  catalog=next;fixedEditing=!config||fixedEditing;render();message(L('目录已载入。请选择双方配置。','Catalog loaded. Select both players’ configurations.'))
+ }
+ async function persist(candidate,replace,replaceAll=false){await save();let data=await api('/api/configuration-save',{configuration:candidate,replace_fixed_setup:replace,replace_all:replaceAll,source_time_s:frame().source_time_s});config=data.configuration;p.configuration=clone(config);document.getElementById('loadoutPreview').textContent=JSON.stringify(data.hero_data,null,2);return data}
+ async function saveFixed(){let old=clone(p.configuration||config);captureFixed();if(old&&['blue','red'].some(side=>old.match_setup.sides[side].champion!==config.match_setup.sides[side].champion)&&config.snapshots.length){if(!confirm(L('更改英雄会清空原状态快照，是否继续？','Changing champions clears old state snapshots. Continue?'))){config=old;return}config.snapshots=[]}
+  try{await persist(config,fixedEditing);fixedEditing=false;render();message(L('固定配置已保存并锁定。','Fixed match configuration saved and locked.'))}catch(e){config=old;throw e}
+ }
+ function loadStateForm(){if(!catalog)return;let snap=atTime(frame().source_time_s);for(let side of ['blue','red'])renderState(side,snap?.sides[side]||baseState());loadedStateTime=frame().source_time_s;updateTimes()}
+ async function recordSnapshot(){if(!p.configuration||fixedEditing)throw Error(L('先保存并锁定英雄和符文。','Save and lock champions/runes first.'));let snap={source_time_s:frame().source_time_s,sides:{}};for(let side of ['blue','red'])snap.sides[side]=readState(side);let next=clone(config);next.snapshots=next.snapshots.filter(s=>s.source_time_s!==snap.source_time_s);next.snapshots.push(snap);await persist(next,false);loadedStateTime=frame().source_time_s;updateTimes();message(L('已按当前视频时间保存状态。','State saved at the current source-video time.'))}
+ function updateTimes(){let node=document.getElementById('snapshotTime');if(!node)return;let time=frame().source_time_s,snap=atTime(time);node.textContent=L('当前帧视频秒数：','Current source-video seconds: ')+time.toFixed(3)+L('；最近已记录状态：','; latest recorded state: ')+(snap?snap.source_time_s.toFixed(3):L('未知','Unknown'))+(loadedStateTime!==time?L('。表单仍保留上次内容，请读取当前帧状态或确认后记录。','. Form still holds the previous values; load the current state or confirm before recording.'):'');
+  let list=document.getElementById('snapshotList');list.replaceChildren(document.createTextNode(L('已保存快照：','Saved snapshots: ')));for(let s of config?.snapshots||[])list.append(button(s.source_time_s.toFixed(3)+' s',()=>{let nearest=p.frames.reduce((a,b)=>Math.abs(a.source_time_s-s.source_time_s)<Math.abs(b.source_time_s-s.source_time_s)?a:b);show(p.frames.indexOf(nearest));loadStateForm()}),button(L('删除此快照','Delete snapshot'),async()=>{let next=clone(config);next.snapshots=next.snapshots.filter(x=>x.source_time_s!==s.source_time_s);await persist(next,false);loadStateForm()}))
+ }
+ window.loadoutFrameChanged=()=>updateTimes();
+ async function acceptConfiguration(candidate){if(!candidate?.match_setup?.patch)throw Error('Missing configuration.match_setup.patch');if(catalog&&candidate.match_setup.patch!==catalog.version)throw Error('External configuration patch differs; load that patch explicitly first');if(!catalog)catalog=await api('/api/catalog',{version:candidate.match_setup.patch});
+  if(!confirm(L('导入将替换英雄、符文和状态快照。是否继续？','Import replaces champions, runes and snapshots. Continue?')))return;
+  await persist(candidate,true,true);fixedEditing=false;render();message(L('配置已验证并导入。','Configuration validated and imported.'))
+ }
+ function downloadConfig(){let blob=new Blob([JSON.stringify(config,null,2)],{type:'application/json'}),link=el('a',null,{href:URL.createObjectURL(blob),download:'match_configuration.json'});link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000)}
+ function openExternal(){let remote=new URL(document.getElementById('externalSelectorUrl').value);if(remote.protocol!=='https:'&&!(remote.protocol==='http:'&&['localhost','127.0.0.1'].includes(remote.hostname)))throw Error('Use HTTPS, or a loopback HTTP test adapter');
+  // Opaque random bridge nonce is independent of the local HTTP session token.
+  let nonce=crypto.randomUUID();remote.searchParams.set('workbench_origin',location.origin);remote.searchParams.set('bridge_nonce',nonce);popup=window.open(remote.href,'lol-selector-'+nonce);if(!popup)throw Error('Popup blocked');bridge={origin:remote.origin,nonce,used:false};message(L('等待外部选择器回传；不会向该网页发送录像、标注或服务令牌。','Waiting for the external selector; no recording, annotations or service token are sent.'))
+ }
+ window.addEventListener('message',async e=>{if(!bridge||bridge.used||e.source!==popup||e.origin!==bridge.origin||e.data?.nonce!==bridge.nonce)return;
+  if(e.data.type==='lol-workbench.selector.ready'){popup.postMessage({type:'lol-workbench.selector.init',nonce:bridge.nonce,configuration:clone(config)},bridge.origin)}
+  if(e.data.type==='lol-workbench.selector.result'){try{let provider=e.data.provider;if(!provider||!/^20\d\d-\d\d-\d\d/.test(provider.updated_at)||Number(provider.updated_at.slice(0,4))<2026||provider.data_patch!==catalog?.version)throw Error('External provider must declare a 2026-or-later update and the exact selected data patch');new URL(provider.project_url);bridge.used=true;let accepted=await acceptConfiguration(e.data.configuration);popup.postMessage({type:accepted?'lol-workbench.selector.accepted':'lol-workbench.selector.cancelled',nonce:bridge.nonce},bridge.origin)}catch(error){message(error.message)}}
+ });
+ window.addEventListener('languagechange',()=>{if(!catalog){render();return}try{let states={};for(let side of ['blue','red'])states[side]=readState(side);captureFixed();render();for(let side of ['blue','red'])renderState(side,states[side])}catch(error){message(error.message)}});
+ window.workbenchReady.then(async()=>{config=p.configuration?clone(p.configuration):null;render();if(config){try{catalog=await api('/api/catalog',{version:config.match_setup.patch});render()}catch(e){message(e.message)}}});
+})();

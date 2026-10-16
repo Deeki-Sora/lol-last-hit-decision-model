@@ -33,6 +33,9 @@ def make_server(directory, port=0):
             return urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query).get('token') == [nonce]
 
         def do_GET(self):
+            asset = urllib.parse.urlsplit(self.path).path
+            if asset in {'/assets/i18n.js', '/assets/loadouts.js'}:
+                return self.respond((Path(__file__).parent / asset.split('/')[-1]).read_bytes(), 'text/javascript; charset=utf-8')
             if not self.authorized():
                 return self.respond({'error':'invalid session token'},status=403)
             path = urllib.parse.unquote(urllib.parse.urlsplit(self.path).path)
@@ -79,11 +82,27 @@ def make_server(directory, port=0):
                         write_json(directory/'project.json',original)
                         write_json(directory/'annotations.json',body['annotations'])
                         self.respond({'saved':True})
+                    elif path == '/api/catalog':
+                        from .catalog import load_catalog
+                        self.respond(load_catalog(directory, body['version']))
+                    elif path == '/api/champion-details':
+                        from .catalog import champion_details
+                        self.respond(champion_details(directory, body['version'], body['champion']))
+                    elif path == '/api/aramonly-preview':
+                        from .external_selectors import aramonly_preview
+                        self.respond(aramonly_preview(directory,body['url'],body['version']))
+                    elif path == '/api/configuration-save':
+                        from .loadouts import save_configuration
+                        self.respond(save_configuration(directory, body))
+                    elif path == '/api/configuration-at':
+                        from .loadouts import configuration_at, number
+                        time = number(body['source_time_s'], 'source time')
+                        self.respond(configuration_at(directory, read_json(directory/'project.json'), time))
                     elif path == '/api/export':
                         self.respond(export_assessment(directory))
                     elif path == '/api/game-draft':
                         from .game_tools import draft
-                        self.respond(draft(read_json(directory/'project.json'),read_json(directory/'annotations.json'),body['frame_id']))
+                        self.respond(draft(read_json(directory/'project.json'),read_json(directory/'annotations.json'),body['frame_id'],directory))
                     elif path == '/api/game-run':
                         from .game_tools import save_run
                         self.respond(save_run(directory,body['task']))

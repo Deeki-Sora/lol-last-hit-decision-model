@@ -101,7 +101,7 @@ def main(argv=None):
         elif args.command=='game-draft':
             from workbench.game_tools import draft
             directory=Path(args.project)
-            write_json(args.output,draft(read_json(directory/'project.json'),read_json(directory/'annotations.json'),args.frame))
+            write_json(args.output,draft(read_json(directory/'project.json'),read_json(directory/'annotations.json'),args.frame,directory))
         elif args.command=='game-run':
             from workbench.game_tools import save_run
             saved=save_run(args.project,read_json(args.task))

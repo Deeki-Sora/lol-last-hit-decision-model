@@ -19,10 +19,15 @@ def availability():
         auto_download=False,note='Dependencies are optional; selecting a link does not install or run a package.')
 
 
-def draft(project,annotations,frame_id):
+def draft(project,annotations,frame_id,directory=None):
     frame=next((f for f in project['frames'] if f['id']==frame_id),None)
     if frame is None:raise ValueError('unknown frame')
     observations=annotations.get('frames',{}).get(frame_id,{})
+    configuration=project.get('configuration')
+    if configuration:
+        past=[s for s in configuration['snapshots'] if s['source_time_s']<=frame['source_time_s']]
+        configuration=dict(match_setup=configuration['match_setup'],
+            selected_snapshot=max(past,key=lambda s:s['source_time_s']) if past else None)
     dead=set()
     for f in project['frames']:
         if f['source_time_s']>frame['source_time_s']:break
@@ -40,14 +45,20 @@ def draft(project,annotations,frame_id):
         if u['kind']=='hero':unit.update(level=None,xp=None,next_level_xp=None,gold_multiplier=None,xp_multiplier=None)
         else:unit.update(gold_reward=None,xp_reward=None,locked_target=None,idle_verified_until_s=None)
         units[u['id']]=unit
+    if directory is not None:
+        from .loadouts import configuration_at
+        hero_references=configuration_at(directory,project,frame['source_time_s'])
+    else:hero_references={}
     return dict(schema_version=1,enabled=False,frame_id=frame_id,entry_time_s=frame['source_time_s'],horizon_s=3.,
-        backend='compare',rules=dict(verified=False,patch=None,sources=[],geometry='unverified_pixels',
+        backend='compare',rules=dict(verified=False,patch=configuration['match_setup']['patch'] if configuration else None,sources=[],geometry='unverified_pixels',
             unit_scope_verified=False,unit_scope_note='',level_up='replan',retarget='replan',hero_aggro='replan',aggro_triggers=[],unmodelled_effects='replan',
             pathing='unverified',xp_mode='solo_lane',xp_range=None,solo_xp_multiplier=None,
             last_hitter_xp_outside_range=None,projectile_step_s=.02,unsupported_mechanics=[],assumptions=[]),
         units=units,in_progress_actions=[],committed_attacks=[],
         policies={side:[dict(id='wait',commands=[dict(at_s=0,kind='wait')])] for side in ('blue','red')},
         utility=None,stochastic=dict(samples=16,seed=0,models=[],effects=[]),observations=dict(frame_id=frame_id,image=frame['image'],health_bar_pixels=observations,
+            match_configuration=configuration,
+            selected_hero_references=hero_references,
             note='Observation references only. Ground positions, effective rules and parameters must be verified; pixels are not copied as game positions.'))
 
 
