@@ -89,6 +89,9 @@ def make_server(directory, port=0):
                     elif path == '/api/champion-details':
                         from .catalog import champion_details
                         self.respond(champion_details(directory, body['version'], body['champion']))
+                    elif path == '/api/codex-reference':
+                        from .reference_profiles import fetch_riot_codex
+                        self.respond(fetch_riot_codex(directory,body['version'],body['champion']))
                     elif path == '/api/aramonly-preview':
                         from .external_selectors import aramonly_preview
                         self.respond(aramonly_preview(directory,body['url'],body['version']))

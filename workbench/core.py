@@ -333,12 +333,12 @@ def export_assessment(directory, bundle=True):
     ready=all(hero_data.get(side,{}).get('verified_effective_state') is True and hero_data.get(side,{}).get('effective_state') for side in ('blue','red'))
     write_json(dest/'manifest.json',dict(schema_version=1,hero_parameters_declared_verified=bool(ready),source_name=p['source_name'],source_sha256=p['source_sha256'],
         start_s=p['start_s'],end_s=p['end_s'],step_s=p['step_s'],calibration=p.get('calibration'),coverage=summary,
-        files={f.relative_to(directory).as_posix():sha256(f) for folder in ['frames','tables','game_analysis','mechanics','templates','catalogs'] for f in (directory/folder).rglob('*') if f.is_file()},
+        files={f.relative_to(directory).as_posix():sha256(f) for folder in ['frames','tables','game_analysis','mechanics','templates','catalogs','references'] for f in (directory/folder).rglob('*') if f.is_file()},
         framework_sha256={name:sha256(dest/name) for name in documents.values()}))
     if bundle:
         archive=directory/'assessment_bundle.zip'
         with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED,compresslevel=1) as output:
-            for name in ['project.json','annotations.json','frames','tables','assessment','game_analysis','mechanics','templates','catalogs']:
+            for name in ['project.json','annotations.json','frames','tables','assessment','game_analysis','mechanics','templates','catalogs','references']:
                 path=directory/name
                 for f in ([path] if path.is_file() else sorted(path.rglob('*'))):
                     if f.is_file():output.write(f,f.relative_to(directory).as_posix())

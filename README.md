@@ -62,7 +62,7 @@ python -m pip install -r requirements-game.txt
 
 小兵资料可用 `python main.py fetch-minions --version 16.6.1 --output catalogs/16.6.1/minion_profiles.json` 单独缓存；无法稳定映射的版本字段会退回带有 `verified=false` 标记的通用 profile。特殊英雄不需要专用 Python 算法，使用 [机制 profile](docs/parameter_algorithm_mapping.md) 的数据适配器描述多段技能、触发器和条件效果。
 
-保存的 Riot Codex 页面文本可用 `python main.py import-codex --input references/aatrox_codex.txt --source https://riotcodex.net/champions/Aatrox --output references/aatrox_reference.json` 提取基础属性和技能文字；提取结果仍是未核验参考，需填入通用机制 profile 后才能参与仿真。
+选择英雄后，工作台会自动构造并读取对应的 Riot Codex 页面，不需要用户自行搜索或复制文本；结果缓存到工作区 `references/`。补丁不匹配、网页不可用或字段无法解析时，页面显示警告并继续使用本地版本目录。保存的页面文本也可用 `python main.py import-codex ...` 手动导入；所有 Codex 结果仍是未核验参考，需填入通用机制 profile 后才能参与仿真。
 
 ## 3. 操作指南
 
