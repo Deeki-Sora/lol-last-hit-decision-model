@@ -49,6 +49,7 @@ class DecisionAlgorithms(unittest.TestCase):
            'resource':{'start':100,'end':100,'maximum':100,'regen_per_s':0}}
         result=relative_state_utility(a,b,10)
         self.assertLess(result['advantage_a'],0)
+        self.assertIn('receipt_advantage',result);self.assertIn('cost_advantage',result)
         # A's HP and resource recovery are credited before the cost comparison.
         self.assertAlmostEqual(result['terms']['resource_cost'],0.0)
         equal=relative_state_utility({'gold_gain':42,'xp_gain':62},{'gold_gain':42,'xp_gain':62},10)

@@ -145,11 +145,19 @@ def relative_state_utility(side_a, side_b, horizon_s, references=None, weights=N
                 elif isinstance(x,(int,float)) and isinstance(y,(int,float)):
                     vals.append(_bounded(float(x)-float(y)))
             if vals:terms[key]=sum(vals)/len(vals)*weights[key]
-    total=sum(terms.values())
-    denom=sum(abs(v) for v in (weights.get(k,0.) for k in terms)) or 1.
-    return {'advantage_a':_bounded(total/denom), 'terms':terms, 'missing':
+    receipt_keys={'gold_gain','xp_gain'}
+    receipt_total=sum(terms.get(k,0.) for k in receipt_keys)
+    receipt_denom=sum(abs(weights.get('gold' if k=='gold_gain' else 'xp',0.)) for k in receipt_keys if k in terms) or 1.
+    cost_total=sum(v for k,v in terms.items() if k not in receipt_keys)
+    cost_denom=sum(abs(weights.get(k,0.)) for k in terms if k not in receipt_keys) or 1.
+    receipt_advantage=_bounded(receipt_total/receipt_denom)
+    cost_advantage=_bounded(cost_total/cost_denom)
+    # Receipts are the primary signal; state cost is a bounded secondary adjustment.
+    combined=_bounded(receipt_advantage + .5*cost_advantage)
+    return {'advantage_a':combined, 'receipt_advantage':receipt_advantage,
+            'cost_advantage':cost_advantage, 'terms':terms, 'missing':
             [k for k in ('gold_gain','xp_gain','hp_cost','resource_cost','cooldown_cost','summoner_cost','consumable_cost') if k not in terms],
-            'centered_score':50.+50.*_bounded(total/denom)}
+            'centered_score':50.+50.*combined}
 
 def two_layer_score(strategy,execution,omega=.5,confidence=1.):
     """Published two-layer score with a frozen 50:50 strategy/execution mix."""
