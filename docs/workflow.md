@@ -86,6 +86,22 @@ python main.py fetch-data --version 16.6.1 --blue Yasuo --red Veigar --output he
 
 fetch-data 是独立的静态数据下载入口。工作台的常规入口是 [可视化配置选择](loadout_selection.md)：加载补丁，选择双方英雄、符文、属性碎片，按视频时间记录等级、加点与装备。选择自动转换为 ID，存入 project.json 的 configuration；无需复制 JSON。外部选择器可提供名称或 ID，数值仍从本地锁定版本的资料读取。
 
+可单独准备小兵资料：
+
+```sh
+python main.py fetch-minions --version 16.6.1 --output catalogs/16.6.1/minion_profiles.json
+```
+
+程序会尝试版本化 CommunityDragon 候选路径；未映射字段保留通用 profile，并标明 `source_kind=generic_default`、`verified=false`。Riot Codex 与 League Wiki 可作为人工核对资料，但必须把来源 URL、补丁、访问日期和有效字段写入 profile，不能把网页值无条件当作当前版本规则。
+
+特殊英雄可以把保存的 Riot Codex 页面文本先转成未核验参考：
+
+```sh
+python main.py import-codex --input references/aatrox_codex.txt --source https://riotcodex.net/champions/Aatrox --output references/aatrox_reference.json
+```
+
+该命令只提取常见基础属性并保留技能文字，不执行网页脚本，也不会自动把技能文字变成确定机制。随后将确认过的字段填入 `templates/mechanism_profile.json`。
+
 导出包的 hero_data.json 对应片段开始时可取得的状态；hero_states.json 保存各时点资料，configuration.json 保存固定配置和状态快照。选择结果及基础资料均不等于实战有效属性。需要实际 attack_speed、attack_range、move_speed、技能修正和 passive_state 等时，由人工/AI 适配并核验；不会因选择完成而将 verified_effective_state 改为 true。
 
 某些 Python 安装未附带完整根证书，可运行 `python -m pip install -r requirements-data.txt` 使用公共 CA 包；程序始终验证 HTTPS 证书。需要专用证书的环境可通过 SSL_CERT_FILE 指定可信 CA。离线使用时直接填写已核验的英雄 JSON。

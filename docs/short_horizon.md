@@ -93,6 +93,8 @@ python main.py game-run runs/session/clip_01 --task task.json
 
 可在工作台下载通用 JSON 模板，也可直接打开 [机制结构模板](../templates/mechanic_adapters.json)。包含 binary、joint_hits、非指向技能和效果适配器的完整字段框架；所有未知参数为 null，核验标志为 false，不含英雄数据。按实际机制填写后，分别放入 stochastic.models、units[id].skills 和 stochastic.effects。不要把模板本身当成已经验证的机制。
 
+复杂英雄可以另用 [机制 profile 模板](../templates/mechanism_profile.json)。它是数据驱动的通用适配器，允许描述多段技能、触发器、计数器和算术效果；`algorithms/mechanism_adapter.py` 会验证受限表达式并返回可审计的状态转移。未核验 profile 不能启用仿真；特殊命中几何、位移、连锁效果和临时装备状态仍须人工/AI 输入或在边界处重规划。
+
 确定的技能描述可以使用 targeted 或 self，字段包括 rank、cast_s、cooldown_s、cost、range、range_mode、missile_speed、effect（damage/heal/shield）、commit=start、interruptible_by_move=false。只支持已核验属于这一类提交方式和取消规则的技能。多充能、位移、持续引导、墙体阻挡等需要另外适配，不能通过改几个标志强行运行。
 
 复杂机制按优先级选择：

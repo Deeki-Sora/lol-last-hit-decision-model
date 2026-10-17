@@ -1,5 +1,7 @@
 # 算法工具与依赖
 
+本仓库还提供可审计的离散事件、有限状态信念、联合调度和风险调整效用实现。POMCP、Counterfactual Regret Minimization、OpenAI Five 和 AlphaStar 仅作为方法参照；不下载训练权重，也不把它们当作完整英雄机制模拟器。详见 [参数到算法的连接](parameter_algorithm_mapping.md)。
+
 主模型第 48 节中的库可用于不同实现路线，不要求全部安装。它们提供调度、搜索或博弈求解工具，游戏状态、合法动作和机制规则仍由模型实现提供。
 
 | 工具 | 用途 | 安装命令 |

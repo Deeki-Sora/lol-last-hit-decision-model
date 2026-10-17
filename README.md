@@ -60,6 +60,10 @@ python -m pip install -r requirements-game.txt
 
 工作台提供中文 / English 界面切换。内置英雄、符文和装备选择器使用标准库接口获取锁定版本的 Riot Data Dragon 数据，以及同补丁 CommunityDragon 属性碎片目录；无需安装独立模拟器。下载后缓存到工作区并随评估包导出，可离线复用。[ARAMonly](https://www.aramonly.com/lol-runes-builder/)是可选的名称/ID 选择入口，通过分享链接导入符文、装备，不负责英雄选择或游戏数值。外部站点不可用时继续使用内置选择器。详情见 [配置选择与外部接口](docs/loadout_selection.md)。
 
+小兵资料可用 `python main.py fetch-minions --version 16.6.1 --output catalogs/16.6.1/minion_profiles.json` 单独缓存；无法稳定映射的版本字段会退回带有 `verified=false` 标记的通用 profile。特殊英雄不需要专用 Python 算法，使用 [机制 profile](docs/parameter_algorithm_mapping.md) 的数据适配器描述多段技能、触发器和条件效果。
+
+保存的 Riot Codex 页面文本可用 `python main.py import-codex --input references/aatrox_codex.txt --source https://riotcodex.net/champions/Aatrox --output references/aatrox_reference.json` 提取基础属性和技能文字；提取结果仍是未核验参考，需填入通用机制 profile 后才能参与仿真。
+
 ## 3. 操作指南
 
 1. 将一个或多个录像放入空白的 `input_videos/` 文件夹，或启动后输入自己的文件夹路径；输入 `choose` 可打开文件夹选择器。
@@ -74,6 +78,8 @@ python -m pip install -r requirements-game.txt
 10. 将 `assessment_bundle.zip` 交给支持文件输入的 AI 工具，或自行按框架评估。资料包包含截图、数据、英雄资料、策略、双语框架，以及可选的机制观察和推演结果。单片段分别评分；多片段统一窗口、条件和固定配置后比较。普通评估无需使用概率推演或博弈工具。
 
 逐按钮操作、恢复工作区和表格编辑见 **[工作台详细指南](docs/workbench_guide.md)**；JSON/CSV 与 AI 接口见 **[操作与数据格式](docs/workflow.md)**；机制参数、概率输入和求解过程见 **[短时推演详细说明](docs/short_horizon.md)**。
+
+属性来源、特殊机制适配器、状态信念、补刀联合调度、风险、信息价值和双层评分的逐项连接见 **[参数到算法的连接](docs/parameter_algorithm_mapping.md)**。
 
 英雄/符文/装备选择、时间快照、ARAMonly 分享链接和外部网页回传协议见 **[配置选择指南](docs/loadout_selection.md)**。固定配置可以导出再导入；第三方网站接入需支持相应分享格式或回传协议，不要求用户依赖指定网站。
 

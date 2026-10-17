@@ -50,7 +50,10 @@ def draft(project,annotations,frame_id,directory=None):
         hero_references=configuration_at(directory,project,frame['source_time_s'])
         from .parameters import evaluate_project
         event_parameters=evaluate_project(directory,project,frame['source_time_s']) if project.get('configuration') else None
-    else:hero_references={}
+        from .minion_data import load_profiles
+        patch=hero_references.get('blue',{}).get('patch')
+        minion_profiles=load_profiles(directory,patch,fetch=False) if patch else None
+    else:hero_references={};minion_profiles=None
     if directory is None:event_parameters=None
     if event_parameters:
         for uid,unit in units.items():
@@ -64,6 +67,17 @@ def draft(project,annotations,frame_id,directory=None):
                 unit['resource_model']='finite';unit['mana']=values['resource_value'];unit['max_mana']=stats['max_resource']['value'];unit['mana_regen_s']=stats['resource_regen']['value']
             # Non-mana meters can have their own effects; do not silently erase them as 'no resource'.
             elif values['resource_type']=='none':unit.update(resource_model='none',mana=0.,max_mana=0.,mana_regen_s=0.)
+    if minion_profiles:
+        for unit in units.values():
+            profile=minion_profiles.get('profiles',{}).get(unit['kind'])
+            if not profile:continue
+            for field in ('max_hp','move_speed','radius','hp_regen_s','armor','magic_resist'):unit[field]=profile.get(field)
+            unit['hp']=profile.get('hp')
+            unit['attack'].update(attack_speed=profile.get('attack_speed'),period_s=profile.get('period_s'),
+                windup_s=profile.get('windup_s'),range=profile.get('range'),missile_speed=profile.get('missile_speed'),
+                damage=dict(type='physical',base=profile.get('damage'),target_current_hp_ratio=0,target_max_hp_ratio=0))
+            unit.update(gold_reward=profile.get('gold_reward'),xp_reward=profile.get('xp_reward'),
+                minion_profile_source=profile.get('source_kind'),minion_profile_verified=profile.get('verified',False))
     return dict(schema_version=1,enabled=False,frame_id=frame_id,entry_time_s=frame['source_time_s'],horizon_s=3.,
         backend='compare',rules=dict(verified=False,patch=configuration['match_setup']['patch'] if configuration else None,sources=[],geometry='unverified_pixels',
             unit_scope_verified=False,unit_scope_note='',level_up='replan',retarget='replan',hero_aggro='replan',aggro_triggers=[],unmodelled_effects='replan',
@@ -71,10 +85,14 @@ def draft(project,annotations,frame_id,directory=None):
             last_hitter_xp_outside_range=None,projectile_step_s=.02,unsupported_mechanics=[],assumptions=[]),
         units=units,in_progress_actions=[],committed_attacks=[],
         policies={side:[dict(id='wait',commands=[dict(at_s=0,kind='wait')])] for side in ('blue','red')},
-        utility=None,stochastic=dict(samples=16,seed=0,models=[],effects=[]),observations=dict(frame_id=frame_id,image=frame['image'],health_bar_pixels=observations,
+        utility=None,evaluation=dict(two_layer=False,omega=.6,risk_alpha=.2,risk_lambda=.25,weights={},scales={},strategy={},execution={},confidence={}),
+        belief=dict(states=[],updates=[]),mechanism_profiles=[],schedule_targets=[],schedule_actor_ready_s=0.,schedule_actor_period_s=0.,schedule_max_schedules=256,
+        stochastic=dict(samples=16,seed=0,models=[],effects=[]),observations=dict(frame_id=frame_id,image=frame['image'],health_bar_pixels=observations,
             match_configuration=configuration,
             selected_hero_references=hero_references,
             event_parameters=event_parameters,
+            minion_profiles=minion_profiles,
+            minion_behavior_reference={kind:profile.get('behavior') for kind,profile in (minion_profiles or {}).get('profiles',{}).items() if profile.get('behavior')},
             note='Observation references only. Ground positions, effective rules and parameters must be verified; pixels are not copied as game positions.'))
 
 
@@ -118,6 +136,27 @@ def run_task(task):
     if not availability()[backend]['installed']:
         raise ValueError('Optional solver not installed. '+availability()[backend]['install'])
     result=compare(task)
+    from algorithms.risk_value import evaluate_policy_branches, two_layer_score
+    evaluation=task.get('evaluation') or {}
+    result['decision_analysis']={side:evaluate_policy_branches(result['branches'],side,
+        (evaluation.get('weights') or {}).get(side),
+        (evaluation.get('scales') or {}).get(side),evaluation.get('risk_alpha',.2),evaluation.get('risk_lambda',.25))
+        for side in ('blue','red')}
+    result['player_scores']={side:two_layer_score((evaluation.get('strategy') or {}).get(side,{}),
+        (evaluation.get('execution') or {}).get(side,{}),evaluation.get('omega',.6),
+        (evaluation.get('confidence') or {}).get(side,1.)) if evaluation.get('two_layer') else None for side in ('blue','red')}
+    if task.get('mechanism_profiles'):
+        from algorithms.mechanism_adapter import explain_profile,validate_profile
+        for profile in task['mechanism_profiles']:validate_profile(profile)
+        result['mechanism_profiles']=[explain_profile(profile) for profile in task['mechanism_profiles']]
+    if task.get('belief') and task['belief'].get('states'):
+        from algorithms.belief_state import roll_forward
+        result['belief_trace']=roll_forward(task['belief']['states'],task['belief'].get('updates',[]))
+    if task.get('schedule_targets'):
+        from algorithms.joint_scheduler import best_schedule
+        schedule=task['schedule_targets']
+        result['joint_schedule_reference']=best_schedule(schedule,task.get('schedule_actor_ready_s',0),
+            task.get('schedule_actor_period_s',0),result['effective_horizon_s'],task.get('schedule_max_schedules',256))
     # Boundary valuation is a declared external assumption, never inferred
     # from lost CS or unfinished minions. Preserve it alongside raw accounts.
     terminal=task.get('terminal_values',{})

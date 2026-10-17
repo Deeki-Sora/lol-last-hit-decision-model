@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "id": "profile_id",
+  "patch": "16.6.1",
+  "source": "https://riotcodex.net/champions/Example",
+  "verified": false,
+  "allow_simulation": false,
+  "states": {"resource": null, "stacks": 0, "ready_in_s": 0},
+  "sequences": [
+    {"id": "multi_cast_sequence", "steps": [
+      {"cast_s": null, "cooldown_s": null, "cost": null, "range": null, "reset_basic_attack": false}
+    ]}
+  ],
+  "triggers": [
+    {"id": "trigger_id", "event": "spell_hit", "conditions": [], "cooldown_s": null,
+     "effects": [{"kind": "damage", "target": "enemy", "amount": null, "duration_s": 0}]}
+  ],
+  "unsupported": ["hitbox or movement rule not yet verified"],
+  "notes": "Fill values from a version-matched source; do not enable until reviewed."
+}

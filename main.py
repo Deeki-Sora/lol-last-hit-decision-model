@@ -70,6 +70,10 @@ def main(argv=None):
     i=sub.add_parser('import-table');i.add_argument('project');i.add_argument('csv');i.add_argument('--encoding',default='utf-8-sig')
     f=sub.add_parser('fetch-data');f.add_argument('--version',required=True);f.add_argument('--blue',required=True)
     f.add_argument('--red',required=True);f.add_argument('--language',default='en_US');f.add_argument('--output',required=True)
+    m=sub.add_parser('fetch-minions',help='Fetch patch-scoped minion candidates; unresolved fields keep generic defaults')
+    m.add_argument('--version',required=True);m.add_argument('--output',required=True)
+    cp=sub.add_parser('import-codex',help='Parse saved Riot Codex text into an unverified reference profile')
+    cp.add_argument('--input',required=True);cp.add_argument('--source',required=True);cp.add_argument('--patch')
     g=sub.add_parser('solve');g.add_argument('--matrix',required=True);g.add_argument('--output',required=True)
     gd=sub.add_parser('game-draft',help='Create an unverified optional planning task from a chosen observation')
     gd.add_argument('project');gd.add_argument('--frame',required=True);gd.add_argument('--output',required=True)
@@ -96,6 +100,16 @@ def main(argv=None):
         elif args.command=='fetch-data':
             write_json(args.output,fetch_hero_data(args.version,args.blue,args.red,args.language))
             print('Base data saved. Verify effective stats, runes, items, ranks and passive state before evaluation.')
+        elif args.command=='fetch-minions':
+            from workbench.minion_data import load_profiles
+            profiles=load_profiles(Path(args.output).parent,args.version,fetch=True)
+            write_json(args.output,profiles)
+            print(json.dumps({'version':args.version,'sources':len(profiles['sources']),'warnings':profiles['warnings']},ensure_ascii=False))
+        elif args.command=='import-codex':
+            from workbench.reference_profiles import codex_text_to_reference
+            reference=codex_text_to_reference(Path(args.input).read_text(encoding='utf-8'),args.source,args.patch)
+            write_json(args.output,reference)
+            print(json.dumps({'patch':reference['patch'],'stats':len(reference['base_stats']),'abilities':len(reference['ability_reference']),'verified':False},ensure_ascii=False))
         elif args.command=='solve':
             write_json(args.output,solve_matrix(read_json(args.matrix)))
         elif args.command=='game-draft':
