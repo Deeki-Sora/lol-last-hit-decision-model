@@ -28,7 +28,7 @@ def fetch_text(url):
         import certifi;context.load_verify_locations(certifi.where())
     except ImportError:pass
     request=urllib.request.Request(url,headers={'User-Agent':'LOL-Short-Window-Workbench/0.91'})
-    with urllib.request.urlopen(request,timeout=20,context=context) as response:
+    with urllib.request.urlopen(request,timeout=5,context=context) as response:
         raw=response.read(12*1024*1024+1)
         if len(raw)>12*1024*1024:raise ValueError('Codex page exceeds size limit')
         return raw.decode('utf-8','replace'),dict(url=url,sha256=hashlib.sha256(raw).hexdigest(),
@@ -80,6 +80,11 @@ def codex_text_to_reference(text, source_url, selected_patch=None):
 def fetch_riot_codex(directory, version, champion):
     """Fetch/cache a champion page; callers never need to search the site."""
     directory=Path(directory);safe=re.sub(r'[^A-Za-z0-9_-]','_',str(champion));folder=directory/'references';folder.mkdir(exist_ok=True)
+    catalog_file=directory/'catalogs'/str(version)/'catalog.json'
+    if catalog_file.exists():
+        catalog=json.loads(catalog_file.read_text(encoding='utf-8-sig'))
+        if not catalog.get('sources'):
+            raise ValueError('Codex lookup skipped because this is an offline synthetic catalog')
     cache=folder/f'codex_{version}_{safe}.json'
     if cache.exists():return json.loads(cache.read_text(encoding='utf-8'))
     candidates=[str(champion),str(champion).lower(),re.sub(r'[^A-Za-z0-9]','',str(champion))]

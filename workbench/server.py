@@ -50,6 +50,9 @@ def make_server(directory, port=0):
             if path == '/api/game-tools':
                 from .game_tools import availability
                 return self.respond(availability())
+            if path == '/api/name-aliases':
+                from .name_aliases import CHAMPION_ALIASES
+                return self.respond(CHAMPION_ALIASES)
             if path == '/api/mechanics-template':
                 from .mechanic_observations import template
                 return self.respond(b'\xef\xbb\xbf'+template().encode('utf-8'),'text/csv; charset=utf-8')

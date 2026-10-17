@@ -53,12 +53,31 @@ def catalog_path(directory, version):
     return Path(directory) / 'catalogs' / version / 'catalog.json'
 
 
+def _ensure_shard_images(directory, catalog):
+    """Backfill icon URLs for older cached catalogs without changing rune data."""
+    if not catalog.get('shards') or all(item.get('image') for item in catalog['shards'].values()):return catalog
+    if 'cd/default/perks' not in catalog.get('sources',{}):return catalog
+    patch='.'.join(catalog['version'].split('.')[:2])
+    try:raw,source=download(f'{CD}/{patch}/plugins/rcp-be-lol-game-data/global/default/v1/perks.json')
+    except (OSError,ValueError):return catalog
+    by_id={str(item['id']):item for item in raw}
+    changed=False
+    for ident,item in catalog['shards'].items():
+        icon=by_id.get(str(ident),{}).get('iconPath')
+        if icon and icon.startswith('/'):
+            item['image']=f'{CD}/{patch}/plugins/rcp-be-lol-game-data/global/default{icon}';changed=True
+    if changed:
+        catalog['sources']['cd/default/perks'] = source
+        write_json(catalog_path(directory,catalog['version']),catalog)
+    return catalog
+
+
 def load_catalog(directory, requested):
     # Exact versions are reusable offline; abbreviated patches use a pinned cached version list.
     if isinstance(requested, str) and re.fullmatch(r'\d+\.\d+\.\d+', requested):
         cached = catalog_path(directory, requested)
         if cached.exists():
-            return read_json(cached)
+            return _ensure_shard_images(directory,read_json(cached))
     versions_file = Path(directory) / 'catalogs' / 'versions.json'
     if versions_file.exists():
         versions = read_json(versions_file)['versions']
@@ -74,7 +93,7 @@ def load_catalog(directory, requested):
         version = resolve_version(requested, versions)
     destination = catalog_path(directory, version)
     if destination.exists():
-        return read_json(destination)
+        return _ensure_shard_images(directory,read_json(destination))
     sources, warnings, data = {}, [], {}
     jobs = {f'{locale}/{kind}': f'{DD}/cdn/{version}/data/{locale}/{kind}.json'
             for locale in ('en_US', 'zh_CN') for kind in ('champion', 'item', 'runesReforged')}
@@ -121,8 +140,10 @@ def load_catalog(directory, requested):
     for perk in data.get('cd/default/perks', []):
         if any(perk['id'] in slot for slot in shard_slots):
             zh = zh_perks.get(perk['id'], perk)
+            icon=perk.get('iconPath')
+            image=f'{CD}/{patch}/plugins/rcp-be-lol-game-data/global/default{icon}' if icon and icon.startswith('/') else None
             shards[str(perk['id'])] = dict(id=perk['id'], names={'en_US': perk['name'], 'zh_CN': zh['name']},
-                descriptions={'en_US': perk['longDesc'], 'zh_CN': zh['longDesc']})
+                descriptions={'en_US': perk['longDesc'], 'zh_CN': zh['longDesc']}, image=image)
     if not shard_slots or any(str(ident) not in shards for slot in shard_slots for ident in slot):
         shard_slots, shards = [], {}
         warnings.append('Patch-specific shard data unavailable; shards remain unknown')

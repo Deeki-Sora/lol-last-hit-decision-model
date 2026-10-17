@@ -1,0 +1,31 @@
+"""Conservative Chinese community aliases for champion selection."""
+
+CHAMPION_ALIASES={
+    'Aatrox':['剑魔','暗裔剑魔'],'Ahri':['狐狸','九尾妖狐'],'Akali':['阿卡丽'],'Alistar':['牛头','牛头酋长'],
+    'Amumu':['木木','殇之木乃伊'],'Anivia':['冰鸟','凤凰'],'Annie':['火女'],'AurelionSol':['龙王'],'Azir':['沙皇'],
+    'Bard':['巴德'],'Blitzcrank':['机器人'],'Brand':['火男'],'Braum':['布隆'],'Caitlyn':['女警'],'Camille':['青钢影'],
+    'Cassiopeia':['蛇女'],'Chogath':['大虫子'],'Corki':['飞机'],'Darius':['诺手'],'Diana':['皎月'],'DrMundo':['蒙多'],
+    'Draven':['德莱文'],'Ekko':['艾克'],'Elise':['蜘蛛'],'Evelynn':['寡妇'],'Ezreal':['EZ','伊泽瑞尔'],
+    'Fiddlesticks':['稻草人'],'Fiora':['剑姬'],'Fizz':['小鱼人'],'Galio':['加里奥'],'Gangplank':['船长'],
+    'Garen':['盖伦'],'Gnar':['纳尔'],'Gragas':['酒桶'],'Graves':['男枪'],'Gwen':['格温'],'Hecarim':['人马'],
+    'Heimerdinger':['大头','大发明家'],'Illaoi':['触手妈'],'Irelia':['刀妹'],'Janna':['风女'],'JarvanIV':['皇子'],
+    'Jax':['武器','武器大师'],'Jayce':['杰斯'],'Jhin':['烬'],'Jinx':['金克丝'],'Karthus':['死歌'],'Kassadin':['卡萨丁'],
+    'Katarina':['卡特'],'Kayle':['天使'],'Kayn':['凯隐'],'Kennen':['凯南'],'Khazix':['螳螂'],'Kindred':['千珏'],
+    'Kled':['克烈'],'KogMaw':['大嘴'],'Leblanc':['妖姬'],'LeeSin':['瞎子'],'Leona':['女坦'],'Lillia':['莉莉娅'],
+    'Lissandra':['冰女'],'Lucian':['卢锡安'],'Lulu':['露露'],'Lux':['光辉'],'Malphite':['石头人'],'Malzahar':['蚂蚱'],
+    'Maokai':['大树'],'MasterYi':['剑圣'],'Milio':['米利欧'],'MissFortune':['女枪'],'Mordekaiser':['铁男'],
+    'Morgana':['莫甘娜'],'Nami':['娜美'],'Nasus':['狗头'],'Nautilus':['泰坦'],'Neeko':['妮蔻'],'Nidalee':['豹女'],
+    'Nocturne':['梦魇'],'Nunu':['雪人'],'Olaf':['奥拉夫'],'Orianna':['发条'],'Ornn':['山羊'],'Pantheon':['潘森'],
+    'Poppy':['波比'],'Pyke':['派克'],'Qiyana':['奇亚娜'],'Quinn':['奎因'],'Rakan':['洛'],'Rammus':['龙龟'],
+    'RekSai':['挖掘机'],'Renekton':['鳄鱼'],'Rengar':['狮子狗'],'Riven':['锐雯'],'Rumble':['兰博'],'Ryze':['瑞兹'],
+    'Samira':['萨米拉'],'Sejuani':['猪妹'],'Senna':['赛娜'],'Seraphine':['萨勒芬妮'],'Sett':['腕豪'],'Shaco':['小丑'],
+    'Shen':['慎'],'Shyvana':['龙女'],'Singed':['炼金'],'Sion':['塞恩'],'Sivir':['轮子妈'],'Skarner':['蝎子'],
+    'Smolder':['斯莫德'],'Sona':['琴女'],'Soraka':['奶妈','索拉卡'],'Swain':['乌鸦'],'Sylas':['塞拉斯'],
+    'Syndra':['辛德拉'],'TahmKench':['蛤蟆'],'Taliyah':['岩雀'],'Talon':['男刀'],'Taric':['宝石'],'Teemo':['提莫'],
+    'Thresh':['锤石'],'Tristana':['小炮'],'Trundle':['巨魔'],'Tryndamere':['蛮王'],'TwistedFate':['卡牌'],
+    'Twitch':['老鼠'],'Udyr':['乌迪尔'],'Urgot':['厄加特'],'Varus':['韦鲁斯'],'Vayne':['薇恩'],'Veigar':['小法','维迦'],
+    'Velkoz':['大眼'],'Vex':['薇古丝'],'Vi':['蔚'],'Viego':['佛耶戈'],'Viktor':['维克托'],'Vladimir':['吸血鬼'],
+    'Volibear':['狗熊'],'Warwick':['狼人'],'MonkeyKing':['猴子'],'Xayah':['霞'],'Xerath':['泽拉斯'],'XinZhao':['赵信'],
+    'Yasuo':['亚索'],'Yone':['永恩'],'Yorick':['掘墓'],'Yuumi':['猫'],'Zac':['扎克'],'Zed':['劫'],'Zeri':['泽丽'],
+    'Ziggs':['炸弹人'],'Zilean':['时光老头'],'Zoe':['佐伊'],'Zyra':['婕拉']
+}

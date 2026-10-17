@@ -2,6 +2,8 @@
 <title>LOL 短时补兵决策评估工作台</title>
 <style>
 body{font:15px system-ui;margin:20px;background:#141b25;color:#ebf0f6}button,input,select,textarea{font:inherit;padding:7px;margin:3px;background:#253246;color:inherit;border:1px solid #748096;border-radius:4px}button{cursor:pointer}button:hover{background:#3a506c}textarea{width:96%;min-height:100px}canvas{width:100%;height:auto;cursor:crosshair;background:#000}main{display:grid;grid-template-columns:minmax(450px,1fr) 350px;gap:18px}.panel{background:#1d2939;padding:14px;border-radius:8px}small{color:#bfcee0}#status{white-space:pre-wrap}label{display:block;margin:5px 0}input[type=range]{width:55%}a{color:#90ceff}.warning{color:#ffd486}#action input{width:92%}@media(max-width:950px){main{display:block}}
+
+.workspace-shell{display:grid;grid-template-columns:190px minmax(0,1fr);gap:14px;align-items:start}.workspace-nav{position:sticky;top:12px;background:#1d2939;padding:10px;border-radius:8px}.workspace-nav button{display:block;width:100%;text-align:left;margin:4px 0}.workspace-nav button.active{background:#3d638c;border-color:#9fd4ff}.workspace-page{display:none}.workspace-page.active{display:block}@media(max-width:850px){.workspace-shell{display:block}.workspace-nav{position:static;display:flex;overflow:auto;gap:5px}.workspace-nav button{white-space:nowrap;width:auto}}
 .loadout-sides{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 24px}
 .loadout-side{display:grid;grid-template-rows:subgrid;grid-row:span 6;gap:10px;min-width:0}
 .loadout-side h3,.loadout-side h4{margin:8px 0}.loadout-side h3{padding:8px;border-bottom:2px solid #71849d}
@@ -19,7 +21,11 @@ body{font:15px system-ui;margin:20px;background:#141b25;color:#ebf0f6}button,inp
 <h1>LOL 短时补兵决策评估工作台</h1>
 <label>Language / 语言 <select id="uiLanguage"><option value="zh">中文</option><option value="en">English</option></select></label>
 <p>按完整血条中心记录坐标。蓝红颜色表示阵营；小兵需分别编号。未知内容留空，保存后重新导出表格。</p>
-<main><section class="panel">
+<div class="workspace-shell"><nav id="workspaceNav" class="workspace-nav" aria-label="工作台分页导航">
+<button data-workspace-tab="evidence" class="active">录像与标注 / Evidence</button>
+<button data-workspace-tab="configuration">英雄与配置 / Configuration</button>
+<button data-workspace-tab="planning">评分与推演 / Planning</button>
+</nav><div id="workspacePages"><section id="workspace-evidence" class="workspace-page active"><main><section class="panel">
 <button id="prev">上一帧</button><input id="slider" type="range" min="0" value="0"><button id="next">下一帧</button><span id="time"></span>
 <canvas id="canvas"></canvas>
 <p><label>点击模式 <select id="mode"><option value="center">当前单位血条中心</option><option value="box">拖框选完整血条（取中心）</option><option value="origin">固定地图纹理原点</option></select></label></p>
@@ -45,8 +51,7 @@ body{font:15px system-ui;margin:20px;background:#141b25;color:#ebf0f6}button,inp
 <p><button id="save">保存</button><button id="export">保存并导出评估包</button></p>
 <p id="downloads"></p><p id="status" role="status"></p>
 <details><summary>导入人工或 AI 标注 JSON</summary><p>格式见 docs/workflow.md。导入后覆盖当前标注；先保存备份。</p><input type="file" id="import" accept=".json"></details>
-</section></main>
-<section class="panel"><h2>评估预输入</h2>
+</section></main></section><section id="workspace-configuration" class="workspace-page"><section class="panel"><h2>评估预输入</h2>
 <div id="loadoutPanel"></div>
 <label>距离标尺（像素=游戏单位，空白保留像素）：<input id="scale" placeholder="189=350"></label>
 <p>游戏距离为用户标尺下的近似量。镜头缩放、透视和不同单位血条高度会造成误差；血条中心距离不等于游戏碰撞边缘距离。</p>
@@ -54,8 +59,7 @@ body{font:15px system-ui;margin:20px;background:#141b25;color:#ebf0f6}button,inp
 <p>可运行 fetch-data 查询官方基础数据，再粘贴到此处。必须核验实际攻速、射程、移速、技能等级/消耗/CD、被动与符文状态；只有基础数据不足以评分。</p>
 <textarea id="heroes" spellcheck="false"></textarea><p>每方需有 champion、patch、runes、items、effective_state 和 verified_effective_state。后者仅在人工核验后设为 true。</p></details>
 <details><summary>一般对线策略参考（可选）</summary><textarea id="strategy" placeholder="纯文字策略、适用条件、来源链接、版本和访问日期"></textarea></details>
-</section>
-<section class="panel"><h2>可选：从当前时刻进行短时事件与博弈推演</h2>
+</section></section><section id="workspace-planning" class="workspace-page"><section class="panel"><h2>可选：从当前时刻进行短时事件与博弈推演</h2>
 <label><input id="gameEnabled" type="checkbox">启用此项（默认关闭，不影响采样、距离或普通评估）</label>
 <p>先选择介入帧，再生成任务。英雄/小兵机制、有效参数、攻击相位、地面坐标和候选动作需核验；升级、未知转火、仇恨或未实现效果会截断共同有效窗口。</p>
 <p>金币、经验、血蓝和冷却成本分别结算；未死小兵不视为永久损失。不自动给出胜负或玩家分数。</p>
@@ -67,7 +71,7 @@ body{font:15px system-ui;margin:20px;background:#141b25;color:#ebf0f6}button,inp
 <p><button id="gameDraft">以当前帧生成任务</button><select id="gameBackend"><option value="compare">仅事件分支比较（无需下载）</option><option value="zero_sum">有限零和相对收益（SciPy）</option><option value="general_sum">双方独立收益（Nashpy）</option></select></p>
 <textarea id="gameTask" style="min-height:220px" spellcheck="false" placeholder="生成草稿后，人工或 AI 填写并核验。没有内置任何英雄的参数。"></textarea>
 <p><button id="gameRun">运行已核验任务</button><a href="https://github.com/Deeki-Sora/lol-last-hit-decision-model/blob/main/docs/short_horizon.md" target="_blank" rel="noopener">机制范围与任务格式</a></p>
-<p id="gameStatus" role="status"></p><div id="gameResults"></div></section>
+<p id="gameStatus" role="status"></p><div id="gameResults"></div></section></section></div></div>
 <script src="/assets/i18n.js"></script>
 <script>
 'use strict';
@@ -111,6 +115,7 @@ $('export').onclick=async()=>{try{await save();let coverage=await api('/api/expo
 $('import').onchange=async e=>{try{let v=JSON.parse(await e.target.files[0].text());if(v.schema_version!==1||!v.frames)throw Error('不是有效标注 JSON');a=v;dirty=true;loadFields();status('已载入标注。保存时将执行结构校验。')}catch(error){status(error.message)}};
 window.onbeforeunload=e=>{if(dirty){e.preventDefault();e.returnValue=''}};
 document.addEventListener('input',()=>{dirty=true});
+document.querySelectorAll('[data-workspace-tab]').forEach(button=>button.onclick=()=>{document.querySelectorAll('[data-workspace-tab]').forEach(x=>x.classList.toggle('active',x===button));document.querySelectorAll('.workspace-page').forEach(x=>x.classList.toggle('active',x.id==='workspace-'+button.dataset.workspaceTab));});
 api('/api/game-tools').then(tools=>{for(let key of ['zero_sum','general_sum']){let info=tools[key],link=document.createElement('a');link.href=info.url;link.target='_blank';link.rel='noopener';link.textContent=`${key}: ${info.installed?'已安装':'未安装，可选下载'}`;$('gameTools').append(link,document.createTextNode(' · '))}$('gameInstall').textContent='可选安装命令（自行在本机终端运行，不自动下载）：\npython -m pip install -r requirements-game.txt'}).catch(e=>{$('gameStatus').textContent=e.message});
 $('mechanicsTemplate').href=url('/api/mechanics-template');
 $('mechanicsAdapters').href=url('/api/mechanics-adapters');

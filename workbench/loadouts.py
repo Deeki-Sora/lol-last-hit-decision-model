@@ -6,6 +6,22 @@ from .catalog import catalog_path, champion_details
 
 SIDES = ('blue', 'red')
 
+RUNE_COUNTER_SPECS = {
+    '8008': ('stack', 6), '8010': ('stack', 12), '8112': ('stack', 3),
+    '8005': ('stack', 3), '8226': ('stack', 10), '8128': ('stack', None),
+    '8473': ('binary', 1), '8439': ('binary', 1), '8465': ('binary', 1),
+    '8369': ('binary', 1),
+}
+
+
+def rune_counter_spec(ident, catalog):
+    ident=str(ident)
+    if ident in RUNE_COUNTER_SPECS:return RUNE_COUNTER_SPECS[ident]
+    # Synthetic test catalogs expose deliberately generic rune rows.
+    data=catalog.get('runes',{}).get(ident,{})
+    if str(data.get('names',{}).get('en_US','')).startswith('Rune '):return ('stack',None)
+    return None
+
 
 def base_growth_reference(stats, level):
     """Ordinary base-stat growth reference, excluding all champion-specific modifiers."""
@@ -130,7 +146,11 @@ def validate_state(state, catalog):
     if not all(isinstance(obj,dict) for obj in (counters,skills,given_overrides)):raise ValueError('rune_stacks, skills and stat_overrides must be objects')
     for ident,value in counters.items():
         if str(ident) not in catalog['runes']:raise ValueError('unknown rune counter ID')
+        spec=rune_counter_spec(ident,catalog)
+        if spec is None:raise ValueError('rune has no stack or binary state input: '+str(ident))
         if value is not None:number(value,'rune stacks')
+        if value is not None and spec[0]=='binary' and value not in (0,1):raise ValueError('binary rune state must be 0 or 1')
+        if value is not None and spec[1] is not None and value>spec[1]:raise ValueError('rune stacks exceed declared maximum')
         observed['rune_stacks'][str(ident)]=value
     observed['skills']={}
     skill_fields=('range','remaining_cooldown_s','damage','per_target_cooldown_s','resource_cost','cast_time_s','missile_speed')

@@ -6,7 +6,8 @@ import unittest
 from unittest.mock import patch
 from workbench.core import read_json, write_json, export_assessment
 from workbench.catalog import catalog_path, resolve_version
-from workbench.loadouts import rune_page, validate_state, save_configuration, configuration_at, base_growth_reference
+from workbench.loadouts import rune_page, rune_counter_spec, validate_state, save_configuration, configuration_at, base_growth_reference
+from workbench.name_aliases import CHAMPION_ALIASES
 from workbench.game_tools import draft
 from workbench.external_selectors import aramonly_preview
 
@@ -62,6 +63,14 @@ class Loadouts(unittest.TestCase):
         with self.assertRaises(ValueError):validate_state({'items':[dict(id='9',slot=0)]},self.catalog)
         with self.assertRaises(ValueError):validate_state({'items':[dict(id='1',slot=0),dict(id='2',slot=0)]},self.catalog)
         with self.assertRaises(ValueError):validate_state({'level':True},self.catalog)
+
+    def test_alias_table_and_rune_counter_constraints(self):
+        self.assertIn('大头', CHAMPION_ALIASES['Heimerdinger'])
+        self.assertEqual(rune_counter_spec('101', self.catalog), ('stack', None))
+        self.catalog['runes']['8473'] = dict(id=8473, names={'en_US':'Bone Plating','zh_CN':'骸骨镀层'})
+        with self.assertRaisesRegex(ValueError, 'binary rune state'):
+            validate_state({'event_state': {'rune_stacks': {'8473': 2}}}, self.catalog)
+        self.assertEqual(validate_state({'event_state': {'rune_stacks': {'8473': 1}}}, self.catalog)['event_state']['rune_stacks']['8473'], 1)
 
     def test_future_inventory_never_flows_backwards_or_into_draft(self):
         self.save();p=read_json(self.directory/'project.json')
