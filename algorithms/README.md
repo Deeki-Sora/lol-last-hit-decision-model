@@ -11,3 +11,6 @@ python -m unittest discover -s algorithms -p "test_*.py"
 ```
 
 For alternative event engines, belief search or game-theoretic solvers discussed in Section 48, see [algorithm dependencies](../docs/algorithm_dependencies.md). These utilities are building blocks rather than a complete implementation of the decision model.
+
+
+`risk_value.py` also exposes `relative_state_utility()`. It centers equal receipts and equal projected states at zero, normalizes health/mana/energy by each side's own maximum, credits natural and observed recovery, and compares cooldown, summoner-spell and consumable expenditure. The published two-layer score defaults to a fixed 50:50 strategy/execution mix; callers should keep confidence and coverage separate from that mix.

@@ -141,6 +141,33 @@ def validate_state(state, catalog):
     adaptive_stat=event.get('adaptive_stat','auto')
     if adaptive_stat not in ('auto','ad','ap'):raise ValueError('invalid adaptive stat choice')
     observed['adaptive_stat']=adaptive_stat
+    # Summoner spells are deliberately generic: names/IDs are user supplied,
+    # while cooldown, availability and observed outcome remain auditable fields.
+    spells=event.get('summoner_spells',{})
+    if not isinstance(spells,dict): raise ValueError('summoner_spells must be an object')
+    observed['summoner_spells']={}
+    for slot in ('slot1','slot2'):
+        spell=spells.get(slot,{}) or {}
+        if not isinstance(spell,dict): raise ValueError('summoner spell '+slot+' must be an object')
+        clean_spell={}
+        for key in ('id','name','target','outcome','note'):
+            value=spell.get(key,'')
+            if value is None: value=''
+            if not isinstance(value,str): raise ValueError('summoner spell '+slot+'.'+key+' must be text')
+            clean_spell[key]=value[:120]
+        cooldown=spell.get('remaining_cooldown_s')
+        if cooldown is not None: number(cooldown,'summoner spell cooldown')
+        clean_spell['remaining_cooldown_s']=cooldown
+        available=spell.get('available')
+        if available is not None and not isinstance(available,bool): raise ValueError('summoner spell available must be true/false/null')
+        clean_spell['available']=available
+        charges=spell.get('charges')
+        if charges is not None: number(charges,'summoner spell charges',0,20,True)
+        clean_spell['charges']=charges
+        used=spell.get('used')
+        if used is not None and not isinstance(used,bool): raise ValueError('summoner spell used must be true/false/null')
+        clean_spell['used']=used
+        observed['summoner_spells'][slot]=clean_spell
     observed['rune_stacks']={}
     counters=event.get('rune_stacks',{});skills=event.get('skills',{});given_overrides=state.get('stat_overrides',{})
     if not all(isinstance(obj,dict) for obj in (counters,skills,given_overrides)):raise ValueError('rune_stacks, skills and stat_overrides must be objects')

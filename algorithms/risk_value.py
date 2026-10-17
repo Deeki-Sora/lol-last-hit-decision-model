@@ -69,9 +69,91 @@ def decision_value(outcomes,weights=None,scales=None,alpha=.2,lambda_risk=.25,vo
         execution_cost=execute_cost,decision_value=value,utilities=utilities)
 
 
-def two_layer_score(strategy,execution,omega=.6,confidence=1.):
-    """Framework's strategy-first score; inputs are normalized 0..1 components."""
-    if not .6<=omega<=1:raise ValueError("strategy weight omega must be between .6 and 1")
+
+def _bounded(value, low=-1., high=1.):
+    return max(low, min(high, float(value)))
+
+
+def _projected_stock_cost(start, end, maximum, horizon_s=0., regen_per_s=0., recovery=0.):
+    """Normalized stock expenditure after natural and observed recovery.
+
+    Positive values mean depletion relative to the window start; negative values
+    mean the stock ended above its start after recovery.  HP, mana, energy and
+    other meters use the same side-specific normalization, so unlike raw values
+    they remain comparable across champions and resource systems.
+    """
+    if any(value is None for value in (start, end, maximum)):
+        return None
+    start, end, maximum = (_finite(value, 'stock') for value in (start, end, maximum))
+    if maximum <= 0:
+        raise ValueError('stock maximum must be positive')
+    horizon_s = _finite(horizon_s, 'horizon_s')
+    regen_per_s = _finite(regen_per_s, 'regen_per_s')
+    recovery = _finite(recovery, 'recovery')
+    projected = min(maximum, end + max(0., horizon_s) * max(0., regen_per_s) + max(0., recovery))
+    return _bounded((start - projected) / maximum)
+
+
+def _relative_side_cost(a, b, field, horizon_s):
+    a_cost = _projected_stock_cost(horizon_s=horizon_s, **a.get(field, {})) if isinstance(a.get(field), dict) else None
+    b_cost = _projected_stock_cost(horizon_s=horizon_s, **b.get(field, {})) if isinstance(b.get(field), dict) else None
+    return (b_cost - a_cost) if a_cost is not None and b_cost is not None else None
+
+
+def relative_state_utility(side_a, side_b, horizon_s, references=None, weights=None):
+    """Compare two sides' receipts and recoverable state costs.
+
+    The result is centered at zero: equal gold/XP and equal projected states
+    yield zero advantage rather than a high absolute score.  ``side_a`` and
+    ``side_b`` may contain ``gold_gain``, ``xp_gain``, ``hp``, ``resource``,
+    ``cooldowns``, ``summoner_spells`` and ``consumables``.  Stock objects use
+    ``start``, ``end``, ``maximum`` and optional ``regen_per_s``/``recovery``.
+    Missing fields remain missing and are excluded from the denominator.
+    """
+    horizon_s = _finite(horizon_s, 'horizon_s')
+    references = references or {'gold': 100., 'xp': 100., 'cooldown': 1., 'charges': 1.}
+    weights = weights or {'gold': 1., 'xp': 1., 'hp_cost': 1., 'resource_cost': 1.,
+                          'cooldown_cost': .5, 'summoner_cost': .75, 'consumable_cost': .5}
+    terms = {}
+    def receipt(key, ref):
+        av, bv = side_a.get(key), side_b.get(key)
+        if av is None or bv is None or ref <= 0:return
+        terms[key] = _bounded((float(av)-float(bv))/float(ref)) * weights['gold' if key=='gold_gain' else 'xp']
+    receipt('gold_gain', references['gold']);receipt('xp_gain', references['xp'])
+    for field, key in [('hp', 'hp_cost'), ('resource', 'resource_cost')]:
+        value = _relative_side_cost(side_a, side_b, field, horizon_s)
+        if value is not None:terms[key] = value * weights[key]
+    # Cooldowns: compare unavailable fractions at the common endpoint.
+    ac, bc = side_a.get('cooldowns'), side_b.get('cooldowns')
+    if isinstance(ac, dict) and isinstance(bc, dict):
+        vals=[]
+        for ident in set(ac) | set(bc):
+            x,y=ac.get(ident),bc.get(ident)
+            if isinstance(x,dict) and isinstance(y,dict) and x.get('maximum_s',0)>0 and y.get('maximum_s',0)>0:
+                vals.append(_bounded(float(y.get('remaining_s',0))/float(y['maximum_s'])-
+                                     float(x.get('remaining_s',0))/float(x['maximum_s'])))
+        if vals:terms['cooldown_cost']=sum(vals)/len(vals)*weights['cooldown_cost']
+    # A used summoner spell/consumable is a cost only when its state changed.
+    for field,key in [('summoner_spells','summoner_cost'),('consumables','consumable_cost')]:
+        av,bv=side_a.get(field),side_b.get(field)
+        if isinstance(av,dict) and isinstance(bv,dict):
+            vals=[]
+            for ident in set(av)|set(bv):
+                x,y=av.get(ident),bv.get(ident)
+                if isinstance(x,dict) and isinstance(y,dict) and x.get('available') is not None and y.get('available') is not None:
+                    vals.append(float(bool(x['available']))-float(bool(y['available'])))
+                elif isinstance(x,(int,float)) and isinstance(y,(int,float)):
+                    vals.append(_bounded(float(x)-float(y)))
+            if vals:terms[key]=sum(vals)/len(vals)*weights[key]
+    total=sum(terms.values())
+    denom=sum(abs(v) for v in (weights.get(k,0.) for k in terms)) or 1.
+    return {'advantage_a':_bounded(total/denom), 'terms':terms, 'missing':
+            [k for k in ('gold_gain','xp_gain','hp_cost','resource_cost','cooldown_cost','summoner_cost','consumable_cost') if k not in terms],
+            'centered_score':50.+50.*_bounded(total/denom)}
+
+def two_layer_score(strategy,execution,omega=.5,confidence=1.):
+    """Published two-layer score with a frozen 50:50 strategy/execution mix."""
+    if not math.isclose(float(omega), .5, abs_tol=1e-12):raise ValueError("published layer weight is fixed at omega=0.50")
     if not 0<=confidence<=1:raise ValueError("confidence must be in [0,1]")
     strategy_weights={"window":.25,"resource_plan":.20,"cooldown_discipline":.15,"cost_conversion":.15,"passive":.10,"rune":.05,"adaptation":.10}
     execution_weights={"distance":.35,"phase":.20,"resource":.20,"movement":.15,"timing":.10}

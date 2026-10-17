@@ -57,10 +57,10 @@ E[J(a)] = \sum_j p_j u_j,
 
 `lower_cvar` 取最差 \(\alpha\) 的预期效用，`value_of_information` 计算观察后重新选择动作的预期增益。金币、经验、血量、资源、冷却和待结算资源须用当前窗口的权重和正尺度。
 
-事后评分采用策略层优先：
+事后评分采用相对资源账本与固定双层结构：先比较双方实际金币和经验到账，再比较按双方自身上限归一化并投影回复后的生命、蓝量/能量、冷却、召唤师技能和消耗品成本。相同资源与相同预计状态是中性基线。
 
 \[
-K=\sum_i w_iK_i,\qquad O=\sum_j v_jO_j,\qquad S=100c[\omega K+(1-\omega)O],\quad \omega\ge0.60.
+K=\sum_i w_iK_i,\qquad O=\sum_j v_jO_j,\qquad S=100c[\omega K+(1-\omega)O],\quad \omega=0.50.
 \]
 
 策略层包括窗口识别、资源计划、冷却纪律、成本转换、被动、符文和适应；执行层包括距离、相位、资源、移动和时机。缺项会列出并重新归一化，不假定满分；双方分别评分。`decision_analysis` 是候选动作局部值，`player_scores` 是事后双层评分，两者不混用。

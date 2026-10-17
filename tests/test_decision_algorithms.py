@@ -3,7 +3,7 @@ import tempfile
 from pathlib import Path
 from algorithms.belief_state import bayesian_update, entropy, roll_forward
 from algorithms.joint_scheduler import best_schedule, enumerate_schedules, evaluate_schedule, feasible_claims
-from algorithms.risk_value import decision_value, lower_cvar, two_layer_score, value_of_information
+from algorithms.risk_value import decision_value, lower_cvar, relative_state_utility, two_layer_score, value_of_information
 from workbench.minion_data import generic_profile, load_profiles
 from workbench.game_tools import run_task
 from test_short_horizon import task
@@ -36,10 +36,26 @@ class DecisionAlgorithms(unittest.TestCase):
         self.assertEqual(value_of_information({'a':1,'b':2},[{'a':10,'b':0},{'a':0,'b':10}],[.5,.5]),8)
         q=decision_value([{'probability':.8,'metrics':{'gold_gain':10}},{'probability':.2,'metrics':{'gold_gain':0}}],{'gold_gain':1})
         self.assertAlmostEqual(q['expected_utility'],8);self.assertLess(q['decision_value'],8)
-        score=two_layer_score({'window':1,'resource_plan':1},{'distance':1,'phase':1,'resource':1,'movement':1,'timing':1},omega=.6)
+        score=two_layer_score({'window':1,'resource_plan':1},{'distance':1,'phase':1,'resource':1,'movement':1,'timing':1})
         self.assertEqual(score['score'],100)
-        missing=two_layer_score({'window':1},{'distance':1},omega=.6,confidence=.5)
+        missing=two_layer_score({'window':1},{'distance':1},confidence=.5)
         self.assertIsNotNone(missing['score']);self.assertTrue(missing['missing'])
+        with self.assertRaises(ValueError): two_layer_score({'window':1},{'distance':1},omega=.6)
+
+    def test_relative_state_utility_centers_equal_trade_at_zero_and_projects_recovery(self):
+        a={'gold_gain':42,'xp_gain':62,'hp':{'start':700,'end':500,'maximum':800,'regen_per_s':4},
+           'resource':{'start':100,'end':60,'maximum':100,'regen_per_s':10}}
+        b={'gold_gain':42,'xp_gain':62,'hp':{'start':700,'end':700,'maximum':800,'regen_per_s':0},
+           'resource':{'start':100,'end':100,'maximum':100,'regen_per_s':0}}
+        result=relative_state_utility(a,b,10)
+        self.assertLess(result['advantage_a'],0)
+        # A's HP and resource recovery are credited before the cost comparison.
+        self.assertAlmostEqual(result['terms']['resource_cost'],0.0)
+        equal=relative_state_utility({'gold_gain':42,'xp_gain':62},{'gold_gain':42,'xp_gain':62},10)
+        self.assertEqual(equal['advantage_a'],0)
+        self.assertEqual(equal['centered_score'],50)
+        spell=relative_state_utility({'summoner_spells':{'flash':{'available':True}}}, {'summoner_spells':{'flash':{'available':False}}}, 10)
+        self.assertGreater(spell['advantage_a'],0)
 
     def test_minion_fallback_is_explicit_and_patch_cacheable(self):
         self.assertFalse(generic_profile('melee')['verified'])

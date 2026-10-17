@@ -12,7 +12,7 @@ import urllib.request
 import urllib.error
 import zipfile
 from workbench.core import (sample,read_json,write_json,default_units,export_tables,
-    export_assessment,calibration,validate_annotations,seconds)
+    export_assessment,calibration,default_calibration,validate_annotations,seconds)
 from workbench.operations import import_csv,solve_matrix
 from workbench.server import make_server
 
@@ -36,6 +36,12 @@ class Tables(unittest.TestCase):
         write_json(self.directory/'annotations.json',self.ann)
 
     def tearDown(self):self.temp.cleanup()
+
+    def test_default_calibration_is_editable_midpoint_of_local_range(self):
+        value=default_calibration()
+        self.assertAlmostEqual(value['pixels'], .459)
+        self.assertEqual(value['pixel_per_game_unit_range'], [.453, .465])
+        self.assertAlmostEqual(calibration('189=350')['units_per_pixel'], 350/189)
 
     def rows(self,name):
         return list(csv.DictReader((self.directory/'tables'/name).read_text(encoding='utf-8-sig').splitlines()))

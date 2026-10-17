@@ -862,6 +862,51 @@ f^{passive}_h=\frac{N^{trigger}_h}{T_{window}},
 
 Write passive effects on timing back into the event chain: killing a minion with an ability for accumulation, preserving movement to prepare a shield, or accepting low-value damage near a shield refresh. Record accumulation, trigger success, duration and window effects, not merely ability use.
 
+
+## 44.6 Recoverable state, relative advantage and summoner spells
+
+A full health bar is not automatically a good outcome, and a low health bar is not automatically a bad one. For each side (p), record start and endpoint stock, maximum, natural regeneration and observed recovery from a rune, item or consumable. For a window (H=T-t_0), define
+
+\[
+\widehat R_{p,r}(T)=\min\left(R_{p,r}^{max},\,R_{p,r}(T)+H\,g_{p,r}+q_{p,r}\right),
+\qquad c_{p,r}=\frac{R_{p,r}(t_0)-\widehat R_{p,r}(T)}{R_{p,r}^{max}}.
+\]
+
+Here (r) may be health, mana, energy or another resource. (g) is verified or user-entered regeneration and (q) is observed or branch-assumed recovery. Positive (c) is depletion, zero is recovery to the start level, and negative (c) is net recovery above the start. Normalize each side by its own maximum; never compare raw mana and energy. Unknown maxima, recovery rates and triggers remain unknown or ranges, never zero.
+
+\[
+\Delta C_r=c_{B,r}-c_{A,r}.
+\]
+
+Taking damage to secure extra gold or XP can therefore be favorable when the receipt advantage is large enough and projected recovery makes (c_{A,H}) small. A no-trade lane with equal receipts and equal projected states has approximately zero relative advantage. It must not receive a high score merely for ending with two full health bars.
+
+Cooldown expenditure is the fraction still unavailable at the common endpoint:
+
+\[
+c_{p,k}^{CD}=\frac{\operatorname{remaining}_{p,k}(T)}{\operatorname{cooldown}_{p,k}^{max}},
+\qquad \Delta C_{CD}=\operatorname{mean}_k(c_{B,k}^{CD}-c_{A,k}^{CD}).
+\]
+
+For each summoner spell record name or ID, availability, remaining cooldown, charges and observed cast. Count a spell as a cost only after it is cast or its availability changes. Count benefit only when the cast has an observable effect on last-hit access, XP/gold receipt, survival, state preservation or the opponent's required cost:
+
+\[
+\Delta C_{SS}=C_{SS,B}-C_{SS,A},
+\qquad C_{SS,p}=\operatorname{mean}_s\left(c_{p,s}^{unavailable}-b_{p,s}^{observed}\right).
+\]
+
+The candidate-action relative resource/state utility is
+
+\[
+V_{rel}(a)=w_G\frac{\Delta G_A-\mu_G\Delta G_B}{G_{ref}}
++w_X\frac{\Delta X_A-\mu_X\Delta X_B}{X_{ref}}
++\sum_{r\in\{H,MP,EN\}}w_r\Delta C_r
++w_{CD}\Delta C_{CD}+w_{SS}\Delta C_{SS}+w_I\Delta C_I.
+\]
+
+(C_I) is normalized consumable inventory expenditure. A centered diagnostic is (S_{rel}=50+50\tanh(V_{rel}/s_{rel})), with (s_{rel}) fixed before reviewing a clip. (V_{rel}=0) maps to 50, the neutral baseline. Include (V_{rel}) in (U_{base}), (K_{resource\ plan}) and (E_{res}^{+}) only once; do not duplicate the same state cost in another component.
+
+This separates resources obtained, state cost paid now and state cost remaining after the window. It credits pressure that buys CS or XP, while penalizing an unproductive exchange that leaves the actor low on health, resource, cooldowns or summoner spells.
+
 # 45. Risk Adjustment
 
 \[
@@ -1111,8 +1156,10 @@ K_h=0.25K_{window}+0.20K_{resource\ plan}+0.15K_{cooldown\ discipline}
 
 \[
 S_h^{two\text{-}layer}=\omega K_h+(1-\omega)O_h,
-\qquad \omega\ge 0.60.
+\qquad \omega=0.50.
 \]
+
+The public framework freezes the strategy/execution mix at 50:50. The weight is part of the model specification, not a conversational adjustment; confidence and coverage are reported separately and do not change this mix.
 
 \(O_h\) evaluates distance, phase, movement, attack cycles, resource costs and risk. Use small execution mistakes to distinguish players only after the strategy reaches a predefined threshold. Precise execution of a wrong strategy should not earn a high score.
 
@@ -1150,7 +1197,7 @@ O_h^{+}=0.35D_h+0.25E_{pos,h}+0.25E_{res,h}^{+}+0.15P_h^{+},
 
 \[
 S_h^{final}=C_h\left[\omega K_h+(1-\omega)O_h^{+}\right],
-\qquad \omega\ge0.60.
+\qquad \omega=0.50.
 \]
 
 Preserve the four scoring categories. Passive/rune effects enter resource efficiency through \(E_{res}^{+}\) and opposing pressure through \(P^{+}\), not as a second duplicate reward.

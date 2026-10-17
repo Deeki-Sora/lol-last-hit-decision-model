@@ -13,6 +13,10 @@ from algorithms.pixel_distance import Observation, distance, displacement, posit
 
 ROOT = Path(__file__).resolve().parents[1]
 VIDEO_SUFFIXES = {'.mp4', '.mkv', '.webm', '.mov', '.avi', '.m4v'}
+# Provisional local health-bar-center calibration from a local skill-range review.
+# It is a starting value only; users can replace it or clear the field.
+DEFAULT_PX_PER_GAME_UNIT_RANGE = (0.453, 0.465)
+DEFAULT_PX_PER_GAME_UNIT = sum(DEFAULT_PX_PER_GAME_UNIT_RANGE) / 2
 EVENT_FIELDS = ['frame_id','source_time_s','image','unit_id','side','kind','wave','alive','enemy_hero_id','in_distance_scope',
     'x_px','y_px','local_x_px','local_y_px','coordinate_method','reviewed','action','target','phase','hp',
     'action_start_s','action_end_s','row_type','enemy_hero_distance_px','target_distance_px',
@@ -58,6 +62,14 @@ def calibration(value):
         raise ValueError('calibration must be positive: pixels=game_units')
     return {'pixels':pixels,'game_units':units,'units_per_pixel':units/pixels,
             'status':'user_supplied_isotropic_estimate'}
+
+
+def default_calibration():
+    """Return the editable midpoint of the provisional local pixel ruler."""
+    return {'pixels':DEFAULT_PX_PER_GAME_UNIT,'game_units':1.0,
+            'units_per_pixel':1.0/DEFAULT_PX_PER_GAME_UNIT,
+            'status':'default_local_skill_range_estimate',
+            'pixel_per_game_unit_range':list(DEFAULT_PX_PER_GAME_UNIT_RANGE)}
 
 
 def probe(path):

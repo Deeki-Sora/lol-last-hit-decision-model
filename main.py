@@ -4,13 +4,13 @@ from datetime import datetime
 import argparse
 import json
 from workbench.core import (ROOT, VIDEO_SUFFIXES, sample, seconds, calibration,
-    read_json, write_json, export_tables, export_assessment, suggest_bars)
+    read_json, write_json, export_tables, export_assessment, suggest_bars, default_calibration)
 from workbench.operations import import_csv, fetch_hero_data, solve_matrix
 
 
 def create(video, output, start, end, step, scale=None, proposals=False, first_wave_template=False):
     project = sample(Path(video).resolve(),Path(output).resolve(),seconds(start),seconds(end),float(step),first_wave_template)
-    project['calibration'] = calibration(scale)
+    project['calibration'] = None if scale in ('0', 'pixel-only') else (calibration(scale) if scale else default_calibration())
     write_json(Path(output)/'project.json',project)
     if proposals:
         write_json(Path(output)/'proposals.json',{
@@ -41,7 +41,8 @@ def interactive():
     if not indices or len(set(indices))!=len(indices) or any(i<0 or i>=len(files) for i in indices):
         raise ValueError('invalid video selection')
     step = float(input('Sampling interval, 0.1 to 0.5 seconds [0.3]: ') or '.3')
-    scale = input('Optional pixel calibration, e.g. 189=350 [blank: pixels only]: ').strip()
+    scale = input('Pixel calibration, e.g. 189=350 [blank: use default 0.459=1; type 0 for pixels only]: ').strip()
+    if scale == '0': scale = 'pixel-only'
     template = input('Use first-wave roster template (3 melee + 3 caster per side)? [y/N]: ').strip().lower()=='y'
     session = ROOT/'runs'/datetime.now().strftime('%Y%m%d_%H%M%S_%f')
     workspaces=[]

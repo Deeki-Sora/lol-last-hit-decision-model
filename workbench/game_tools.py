@@ -85,7 +85,7 @@ def draft(project,annotations,frame_id,directory=None):
             last_hitter_xp_outside_range=None,projectile_step_s=.02,unsupported_mechanics=[],assumptions=[]),
         units=units,in_progress_actions=[],committed_attacks=[],
         policies={side:[dict(id='wait',commands=[dict(at_s=0,kind='wait')])] for side in ('blue','red')},
-        utility=None,evaluation=dict(two_layer=False,omega=.6,risk_alpha=.2,risk_lambda=.25,weights={},scales={},strategy={},execution={},confidence={}),
+        utility=None,evaluation=dict(two_layer=False,omega=.5,risk_alpha=.2,risk_lambda=.25,weights={},scales={},strategy={},execution={},confidence={}),
         belief=dict(states=[],updates=[]),mechanism_profiles=[],schedule_targets=[],schedule_actor_ready_s=0.,schedule_actor_period_s=0.,schedule_max_schedules=256,
         stochastic=dict(samples=16,seed=0,models=[],effects=[]),observations=dict(frame_id=frame_id,image=frame['image'],health_bar_pixels=observations,
             match_configuration=configuration,
@@ -143,7 +143,7 @@ def run_task(task):
         (evaluation.get('scales') or {}).get(side),evaluation.get('risk_alpha',.2),evaluation.get('risk_lambda',.25))
         for side in ('blue','red')}
     result['player_scores']={side:two_layer_score((evaluation.get('strategy') or {}).get(side,{}),
-        (evaluation.get('execution') or {}).get(side,{}),evaluation.get('omega',.6),
+        (evaluation.get('execution') or {}).get(side,{}),evaluation.get('omega',.5),
         (evaluation.get('confidence') or {}).get(side,1.)) if evaluation.get('two_layer') else None for side in ('blue','red')}
     if task.get('mechanism_profiles'):
         from algorithms.mechanism_adapter import explain_profile,validate_profile

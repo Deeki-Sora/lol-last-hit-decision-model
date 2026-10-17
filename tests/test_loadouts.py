@@ -72,6 +72,13 @@ class Loadouts(unittest.TestCase):
             validate_state({'event_state': {'rune_stacks': {'8473': 2}}}, self.catalog)
         self.assertEqual(validate_state({'event_state': {'rune_stacks': {'8473': 1}}}, self.catalog)['event_state']['rune_stacks']['8473'], 1)
 
+    def test_summoner_spell_state_is_generic_and_auditable(self):
+        state=validate_state({'event_state':{'summoner_spells':{'slot1':{'name':'Flash','remaining_cooldown_s':3,'available':False,'used':True},'slot2':{'name':'Ignite','available':True}}}},self.catalog)
+        self.assertEqual(state['event_state']['summoner_spells']['slot1']['name'],'Flash')
+        self.assertFalse(state['event_state']['summoner_spells']['slot1']['available'])
+        with self.assertRaises(ValueError):
+            validate_state({'event_state':{'summoner_spells':{'slot1':{'available':'false'}}}},self.catalog)
+
     def test_future_inventory_never_flows_backwards_or_into_draft(self):
         self.save();p=read_json(self.directory/'project.json')
         before=configuration_at(self.directory,p,0)['blue'];after=configuration_at(self.directory,p,.7)['blue']
